@@ -9,7 +9,7 @@ import numpy as np
 # ============================================================
 # Read data
 # ============================================================
-df = pd.read_csv(r"C:\AI\cc\stock\NVDA_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
+df = pd.read_csv(r"C:\AI\cc\stock\data\NVDA_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
 close = df[("Close", "NVDA")].dropna()
 
 # ============================================================
@@ -119,7 +119,7 @@ for _, t in trades_df.iterrows():
 print("-" * 85)
 
 # Save
-values_df.to_csv(r"C:\AI\cc\stock\NVDA_equity.csv")
-trades_df.to_csv(r"C:\AI\cc\stock\NVDA_trades.csv")
+values_df.to_csv(r"C:\AI\cc\stock\data\NVDA_equity.csv")
+trades_df.to_csv(r"C:\AI\cc\stock\data\NVDA_trades.csv")
 print("\nEquity curve saved to: NVDA_equity.csv")
 print("Trade log saved to: NVDA_trades.csv")

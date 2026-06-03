@@ -10,7 +10,7 @@ import matplotlib.dates as mdates
 # ============================================================
 # 1. Load GOOGL data
 # ============================================================
-df = pd.read_csv(r"C:\AI\cc\stock\GOOGL_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
+df = pd.read_csv(r"C:\AI\cc\stock\data\GOOGL_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
 close = df[("Close", "GOOGL")].dropna()
 
 initial_capital = 10000.0
@@ -224,7 +224,7 @@ ax6.grid(True, alpha=0.3)
 
 plt.suptitle("GOOGL (Alphabet) Quantitative Strategy Backtests", fontsize=15, fontweight="bold", y=1.01)
 plt.tight_layout()
-chart_path = r"C:\AI\cc\stock\GOOGL_backtest_chart.png"
+chart_path = r"C:\AI\cc\stock\image\GOOGL_backtest_chart.png"
 plt.savefig(chart_path, dpi=150, bbox_inches="tight")
 print(f"\n\nChart saved to: {chart_path}")
 plt.close()
@@ -246,7 +246,7 @@ print(f"""
 """)
 
 # Save detailed CSVs
-values_ma.to_csv(r"C:\AI\cc\stock\GOOGL_ma_cross.csv")
-trades_ma_df.to_csv(r"C:\AI\cc\stock\GOOGL_ma_trades.csv")
-best_mom.to_csv(r"C:\AI\cc\stock\GOOGL_momentum_12M.csv")
+values_ma.to_csv(r"C:\AI\cc\stock\data\GOOGL_ma_cross.csv")
+trades_ma_df.to_csv(r"C:\AI\cc\stock\data\GOOGL_ma_trades.csv")
+best_mom.to_csv(r"C:\AI\cc\stock\data\GOOGL_momentum_12M.csv")
 print("Detailed results saved: GOOGL_ma_cross.csv, GOOGL_ma_trades.csv, GOOGL_momentum_12M.csv")

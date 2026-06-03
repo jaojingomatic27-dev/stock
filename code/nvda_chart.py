@@ -4,7 +4,7 @@ import matplotlib.dates as mdates
 import os
 
 # 读取数据
-df = pd.read_csv(r"C:\AI\cc\stock\NVDA_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
+df = pd.read_csv(r"C:\AI\cc\stock\data\NVDA_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
 
 # 提取 NVDA 的 Close 价格
 close = df[("Close", "NVDA")].dropna()
@@ -33,7 +33,7 @@ ax.legend(loc="upper left")
 ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
-output_path = r"C:\AI\cc\stock\NVDA_chart.png"
+output_path = r"C:\AI\cc\stock\image\NVDA_chart.png"
 plt.savefig(output_path, dpi=150)
 print(f"图已保存至: {output_path}")
 plt.close()

@@ -11,8 +11,8 @@ def load_close(path, col_name):
     close = df[("Close", col_name)].dropna()
     return close[close.index >= "2016-01-01"]
 
-spy = load_close(r"C:\AI\cc\stock\SPY_daily.csv", "SPY")
-nvda = load_close(r"C:\AI\cc\stock\NVDA_daily.csv", "NVDA")
+spy = load_close(r"C:\AI\cc\stock\data\SPY_daily.csv", "SPY")
+nvda = load_close(r"C:\AI\cc\stock\data\NVDA_daily.csv", "NVDA")
 
 MIN_A, MID_A, MAX_A = 500.0, 1000.0, 1500.0
 SHOW_TOP = 5  # how many strategies to show in detail
@@ -371,7 +371,7 @@ ax4.invert_yaxis()
 
 plt.suptitle("Enhanced DCA Strategies: $500-$1500/month Optimization (2016-2026)", fontsize=16, fontweight="bold", y=1.01)
 plt.tight_layout()
-path = r"C:\AI\cc\stock\DCA_optimized_v2.png"
+path = r"C:\AI\cc\stock\image\DCA_optimized_v2.png"
 plt.savefig(path, dpi=150, bbox_inches="tight")
 print(f"\nChart saved to: {path}")
 plt.close()

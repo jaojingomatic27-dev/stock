@@ -10,8 +10,8 @@ def load_close(path, col_name):
     df = pd.read_csv(path, header=[0, 1], index_col=0, parse_dates=True)
     return df[("Close", col_name)].dropna()["2016-01-01":]
 
-spy = load_close(r"C:\AI\cc\stock\SPY_daily.csv", "SPY")
-nvda = load_close(r"C:\AI\cc\stock\NVDA_daily.csv", "NVDA")
+spy = load_close(r"C:\AI\cc\stock\data\SPY_daily.csv", "SPY")
+nvda = load_close(r"C:\AI\cc\stock\data\NVDA_daily.csv", "NVDA")
 
 BASE, MIN_A, MAX_A = 1000.0, 500.0, 1500.0
 
@@ -445,7 +445,7 @@ ax6.grid(True, alpha=0.3)
 plt.suptitle("Equal-Total Enhanced DCA: Same Budget, Smarter Allocation ($500-$1500/mo, 2016-2026)",
              fontsize=16, fontweight="bold", y=1.01)
 plt.tight_layout()
-path = r"C:\AI\cc\stock\DCA_equal_invested.png"
+path = r"C:\AI\cc\stock\image\DCA_equal_invested.png"
 plt.savefig(path, dpi=150, bbox_inches="tight")
 print(f"\nChart saved to: {path}")
 plt.close()

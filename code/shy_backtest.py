@@ -17,10 +17,10 @@ def load_close(path, col_name): # type: ignore
 
 # SHY starts 2002-07, others earlier. Align to 2010 for multi-asset comparison
 assets_raw = {
-    "SHY":   load_close(r"C:\AI\cc\stock\SHY_daily.csv", "SHY"),
-    "SPY":   load_close(r"C:\AI\cc\stock\SPY_daily.csv", "SPY"),
-    "GLD":   load_close(r"C:\AI\cc\stock\GLD_daily.csv", "GLD"),
-    "NVDA":  load_close(r"C:\AI\cc\stock\NVDA_daily.csv", "NVDA"),
+    "SHY":   load_close(r"C:\AI\cc\stock\data\SHY_daily.csv", "SHY"),
+    "SPY":   load_close(r"C:\AI\cc\stock\data\SPY_daily.csv", "SPY"),
+    "GLD":   load_close(r"C:\AI\cc\stock\data\GLD_daily.csv", "GLD"),
+    "NVDA":  load_close(r"C:\AI\cc\stock\data\NVDA_daily.csv", "NVDA"),
 }
 
 # Align to common start
@@ -594,7 +594,7 @@ ax.set_ylabel("Index (100 = Jan 2020)"); ax.legend(fontsize=8); ax.grid(True, al
 plt.suptitle("US 3-Year Treasury (SHY) vs Stocks, Gold, NVDA — 2010-2026 Strategy Comparison",
              fontsize=17, fontweight="bold", y=1.01)
 plt.tight_layout()
-chart_path = r"C:\AI\cc\stock\SHY_comparison.png"
+chart_path = r"C:\AI\cc\stock\image\SHY_comparison.png"
 plt.savefig(chart_path, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"\nChart saved: {chart_path}")

@@ -15,8 +15,8 @@ def load_close(path, col_name):
     close = df[("Close", col_name)].dropna()
     return close[close.index >= "2010-01-01"]
 
-spy = load_close(r"C:\AI\cc\stock\SPY_daily.csv", "SPY")
-nvda = load_close(r"C:\AI\cc\stock\NVDA_daily.csv", "NVDA")
+spy = load_close(r"C:\AI\cc\stock\data\SPY_daily.csv", "SPY")
+nvda = load_close(r"C:\AI\cc\stock\data\NVDA_daily.csv", "NVDA")
 
 monthly_amount = 500.0
 
@@ -265,7 +265,7 @@ ax6.grid(True, alpha=0.3, axis="y")
 
 plt.suptitle(f"Dollar Cost Averaging: ${monthly_amount:.0f}/month SPY vs NVDA (2010-2026)", fontsize=16, fontweight="bold", y=1.01)
 plt.tight_layout()
-path = r"C:\AI\cc\stock\DCA_SPY_vs_NVDA.png"
+path = r"C:\AI\cc\stock\image\DCA_SPY_vs_NVDA.png"
 plt.savefig(path, dpi=150, bbox_inches="tight")
 print(f"\nChart saved to: {path}")
 plt.close()

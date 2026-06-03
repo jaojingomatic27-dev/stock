@@ -10,8 +10,8 @@ import matplotlib.dates as mdates
 # ============================================================
 # Load GOOGL & NVDA, trim to 2010+
 # ============================================================
-googl = pd.read_csv(r"C:\AI\cc\stock\GOOGL_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
-nvda = pd.read_csv(r"C:\AI\cc\stock\NVDA_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
+googl = pd.read_csv(r"C:\AI\cc\stock\data\GOOGL_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
+nvda = pd.read_csv(r"C:\AI\cc\stock\data\NVDA_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
 
 googl_close = googl[("Close", "GOOGL")].dropna()
 nvda_close = nvda[("Close", "NVDA")].dropna()
@@ -280,7 +280,7 @@ ax4.legend(by_label.values(), by_label.keys(), fontsize=6, loc="lower right")
 
 plt.suptitle("GOOGL vs NVDA Quantitative Strategy Backtest (2010-01-01 ~ 2026-06-02)", fontsize=15, fontweight="bold", y=1.01)
 plt.tight_layout()
-chart_path = r"C:\AI\cc\stock\GOOGL_vs_NVDA_2010.png"
+chart_path = r"C:\AI\cc\stock\image\GOOGL_vs_NVDA_2010.png"
 plt.savefig(chart_path, dpi=150, bbox_inches="tight")
 print(f"\nChart saved to: {chart_path}")
 plt.close()

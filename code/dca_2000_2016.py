@@ -14,8 +14,8 @@ def load_close(path, col_name, start="2000-01-01", end="2016-01-01"):
     close = df[("Close", col_name)].dropna()
     return close[start:end]
 
-spy = load_close(r"C:\AI\cc\stock\SPY_daily.csv", "SPY")
-nvda = load_close(r"C:\AI\cc\stock\NVDA_daily.csv", "NVDA")
+spy = load_close(r"C:\AI\cc\stock\data\SPY_daily.csv", "SPY")
+nvda = load_close(r"C:\AI\cc\stock\data\NVDA_daily.csv", "NVDA")
 
 # Check data availability
 print("=" * 80)
@@ -362,7 +362,7 @@ ax4.invert_yaxis()
 
 plt.suptitle(f"Equal-Total DCA Strategy Comparison: {period_label}", fontsize=16, fontweight="bold", y=1.01)
 plt.tight_layout()
-path = r"C:\AI\cc\stock\DCA_2000_2016.png"
+path = r"C:\AI\cc\stock\image\DCA_2000_2016.png"
 plt.savefig(path, dpi=150, bbox_inches="tight")
 print(f"\nChart saved to: {path}")
 plt.close()

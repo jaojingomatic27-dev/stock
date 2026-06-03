@@ -3,7 +3,7 @@ import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 import pandas as pd, numpy as np
 
-df = pd.read_csv(r'C:\AI\cc\stock\SPY_full.csv', header=[0,1], index_col=0, parse_dates=True)
+df = pd.read_csv(r'C:\AI\cc\stock\data\SPY_full.csv', header=[0,1], index_col=0, parse_dates=True)
 close = df[('Close','SPY')].dropna()['2000-01-01':'2010-01-04']
 
 print(f'SPY 2000-2010: {close.index[0].strftime("%Y-%m-%d")} ~ {close.index[-1].strftime("%Y-%m-%d")}')

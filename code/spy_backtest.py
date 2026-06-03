@@ -15,9 +15,9 @@ def load_close(path, col_name):
     close = df[("Close", col_name)].dropna()
     return close[close.index >= "2010-01-01"]
 
-spy = load_close(r"C:\AI\cc\stock\SPY_daily.csv", "SPY")
-googl = load_close(r"C:\AI\cc\stock\GOOGL_daily.csv", "GOOGL")
-nvda = load_close(r"C:\AI\cc\stock\NVDA_daily.csv", "NVDA")
+spy = load_close(r"C:\AI\cc\stock\data\SPY_daily.csv", "SPY")
+googl = load_close(r"C:\AI\cc\stock\data\GOOGL_daily.csv", "GOOGL")
+nvda = load_close(r"C:\AI\cc\stock\data\NVDA_daily.csv", "NVDA")
 
 initial_capital = 10000.0
 
@@ -281,7 +281,7 @@ ax4.grid(True, alpha=0.3)
 
 plt.suptitle("SPY vs GOOGL vs NVDA — Quantitative Strategy Comparison (2010-2026)", fontsize=15, fontweight="bold", y=1.01)
 plt.tight_layout()
-chart_path = r"C:\AI\cc\stock\SPY_GOOGL_NVDA_chart.png"
+chart_path = r"C:\AI\cc\stock\image\SPY_GOOGL_NVDA_chart.png"
 plt.savefig(chart_path, dpi=150, bbox_inches="tight")
 print(f"\nChart saved to: {chart_path}")
 plt.close()

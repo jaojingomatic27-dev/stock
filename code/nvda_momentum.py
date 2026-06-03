@@ -10,7 +10,7 @@ import matplotlib.dates as mdates
 # ============================================================
 # 1. Load data
 # ============================================================
-df = pd.read_csv(r"C:\AI\cc\stock\NVDA_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
+df = pd.read_csv(r"C:\AI\cc\stock\data\NVDA_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
 close = df[("Close", "NVDA")].dropna()
 
 # Resample to monthly for momentum strategy
@@ -180,7 +180,7 @@ ax4.xaxis.set_major_locator(mdates.YearLocator(2))
 
 plt.suptitle("NVDA Momentum Strategy Backtest (Jegadeesh-Titman Method)", fontsize=16, fontweight="bold", y=1.01)
 plt.tight_layout()
-output_path = r"C:\AI\cc\stock\NVDA_momentum_chart.png"
+output_path = r"C:\AI\cc\stock\image\NVDA_momentum_chart.png"
 plt.savefig(output_path, dpi=150, bbox_inches="tight")
 print(f"\nChart saved to: {output_path}")
 plt.close()
@@ -213,5 +213,5 @@ for _, t in all_trades.tail(24).iterrows():
     print(f"  {t['date'].strftime('%Y-%m-%d'):<12} {t['action']:<6} ${t['price']:>9.2f} {t['momentum_pct']:>9.1f}%")
 
 # Save
-best.to_csv(r"C:\AI\cc\stock\NVDA_momentum_12M.csv")
+best.to_csv(r"C:\AI\cc\stock\data\NVDA_momentum_12M.csv")
 print(f"\nDetailed data saved to: NVDA_momentum_12M.csv")

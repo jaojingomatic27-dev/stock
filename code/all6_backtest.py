@@ -16,12 +16,12 @@ def load_close(path, col_name):
     return close[close.index >= "2010-01-01"]
 
 assets = {
-    "SPY":   load_close(r"C:\AI\cc\stock\SPY_daily.csv", "SPY"),
-    "GOOGL": load_close(r"C:\AI\cc\stock\GOOGL_daily.csv", "GOOGL"),
-    "NVDA":  load_close(r"C:\AI\cc\stock\NVDA_daily.csv", "NVDA"),
-    "ORCL":  load_close(r"C:\AI\cc\stock\ORCL_daily.csv", "ORCL"),
-    "AMZN":  load_close(r"C:\AI\cc\stock\AMZN_daily.csv", "AMZN"),
-    "GLD":   load_close(r"C:\AI\cc\stock\GLD_daily.csv", "GLD"),
+    "SPY":   load_close(r"C:\AI\cc\stock\data\SPY_daily.csv", "SPY"),
+    "GOOGL": load_close(r"C:\AI\cc\stock\data\GOOGL_daily.csv", "GOOGL"),
+    "NVDA":  load_close(r"C:\AI\cc\stock\data\NVDA_daily.csv", "NVDA"),
+    "ORCL":  load_close(r"C:\AI\cc\stock\data\ORCL_daily.csv", "ORCL"),
+    "AMZN":  load_close(r"C:\AI\cc\stock\data\AMZN_daily.csv", "AMZN"),
+    "GLD":   load_close(r"C:\AI\cc\stock\data\GLD_daily.csv", "GLD"),
 }
 
 initial_capital = 10000.0
@@ -270,7 +270,7 @@ ax4.grid(True, alpha=0.3, axis="y")
 
 plt.suptitle("6-Asset Quantitative Strategy Comparison (2010-2026)", fontsize=16, fontweight="bold", y=1.01)
 plt.tight_layout()
-path1 = r"C:\AI\cc\stock\ALL6_strategies.png"
+path1 = r"C:\AI\cc\stock\image\ALL6_strategies.png"
 plt.savefig(path1, dpi=150, bbox_inches="tight")
 plt.close()
 
@@ -308,7 +308,7 @@ leg_colors = [Line2D([0], [0], marker='o', color=c, markersize=10, label=n, line
 ax.legend(handles=leg_colors, title="Asset", fontsize=9, loc="lower right")
 
 plt.tight_layout()
-path2 = r"C:\AI\cc\stock\ALL6_risk_return.png"
+path2 = r"C:\AI\cc\stock\image\ALL6_risk_return.png"
 plt.savefig(path2, dpi=150, bbox_inches="tight")
 plt.close()
 
