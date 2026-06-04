@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """DCA 每月定投提醒 + RSI 跟进邮件
 
-每月在最佳买入日（1号+7天后的第一个交易日）发送定投提醒邮件，
+每月在最佳买入日（每月第一个周四，若在1-3号则顺延到第二个周四）发送定投提醒邮件，
 一周后自动发送 RSI 跟进邮件，评价当时买入的 RSI 水平。
 
 用法：
@@ -174,39 +174,63 @@ def save_state(state):
 
 
 # ═══════════════════════════════════════════════════════
-# 买入日计算：1号+7天后的第一个交易日
+# 买入日计算：每月第一个周四，若在1-3号则用第二个周四
 # ═══════════════════════════════════════════════════════
 
 def find_buy_day(year, month, all_trading_days):
     """找到指定月份的定投日。
 
-    规则：当月 1 号 + 7 天后的第一个交易日。
-    例如 6月1日 + 7 = 6月8日 → 找 ≥ 6月8日的第一个交易日。
+    规则：每月第一个周四。
+    如果第一个周四落在 1-3 号（月头三天），则用第二个周四。
+    然后找该周四及之后的第一个交易日。
+
+    例如 2026年6月: 1号周一 → 第一个周四=6月4日(4号, 非1-3) → 定投日=6月4日
+    例如 2026年7月: 1号周三 → 第一个周四=7月2日(2号! 在1-3) → 跳过, 第二个周四=7月9日
 
     如果数据不足：返回 None 表示尚未出现。
     """
+    # 计算目标周四
     first_cal = datetime(year, month, 1)
-    wait_until = first_cal + timedelta(days=7)  # 1号+7天
+    # 找到第一个周四：dayofweek: 0=Mon ... 3=Thu
+    days_until_thu = (3 - first_cal.weekday()) % 7  # 0=Mon ... 6=Sun
+    first_thu = first_cal + timedelta(days=days_until_thu)
 
+    if first_thu.day <= 3:
+        # 第一个周四在月头1-3号，顺延到第二个周四
+        target_thu = first_thu + timedelta(days=7)
+    else:
+        target_thu = first_thu
+
+    # 找 target_thu 及之后的第一个交易日
     for dt in sorted(all_trading_days):
         dt_py = dt.to_pydatetime() if hasattr(dt, 'to_pydatetime') else datetime(
             dt.year, dt.month, dt.day)
-        if dt_py >= wait_until and dt_py.year == year and dt_py.month == month:
+        if dt_py >= target_thu and dt_py.year == year and dt_py.month == month:
             return dt
 
-    # 未找到：检查是本月的交易数据还没到 wait_until，还是已经过了
+    # 未找到：检查是本月的交易数据还没到 target_thu，还是已经过了
     month_days = [d for d in sorted(all_trading_days)
                   if hasattr(d, 'year') and d.year == year and d.month == month]
     if month_days:
         last_day = month_days[-1]
         last_py = last_day.to_pydatetime() if hasattr(last_day, 'to_pydatetime') else datetime(
             last_day.year, last_day.month, last_day.day)
-        if last_py < wait_until:
-            # 数据还没覆盖到 wait_until（本月尚未到达定投日）
+        if last_py < target_thu:
+            # 数据还没覆盖到 target_thu（本月尚未到达定投日）
             return None
         # 数据已覆盖但没找到 → 本月已过定投日，返回最后交易日
         return last_day
     return None
+
+
+def _estimate_thu(year, month):
+    """纯日历估算目标周四（不含交易日校正）。"""
+    first = datetime(year, month, 1)
+    days_until_thu = (3 - first.weekday()) % 7
+    thu = first + timedelta(days=days_until_thu)
+    if thu.day <= 3:
+        thu = thu + timedelta(days=7)
+    return thu
 
 
 def is_buy_day_today(all_trading_days):
@@ -223,6 +247,15 @@ def is_buy_day_today(all_trading_days):
         if today.date() > buy_py.date():
             # 本月定投日已过，计算下个月的
             pass  # fall through to next_month logic below
+    else:
+        # 数据未覆盖到定投日，用日历估算判断今天是否为定投日
+        est = _estimate_thu(today.year, today.month)
+        if today.date() == est.date():
+            # 今天就是日历上的定投日！（数据可能未更新但日子到了）
+            return True, est, None
+        if today.date() < est.date():
+            # 定投日还没到
+            buy_dt = None  # 保持 None，后续会显示日历估算
 
     # 计算下个月的定投日
     next_month = today.month + 1
@@ -254,7 +287,7 @@ def build_buy_email(prices, buy_date, fx_rate=None):
     lines.append(f"║   📬 DCA 每月定投提醒 — {today_str}    ║")
     lines.append(f"╚══════════════════════════════════════════╝")
     lines.append("")
-    lines.append(f"📅 定投日：{buy_str}（1号+7天规则）")
+    lines.append(f"📅 定投日：{buy_str}（每月第一个周四）")
     lines.append("")
     lines.append(f"💰 本月投入：${PORTFOLIO['monthly']:,}")
     lines.append(f"📐 持仓比例：NVDA = 2× AVGO")
@@ -307,7 +340,7 @@ def build_buy_email(prices, buy_date, fx_rate=None):
 
     <div style="background:#e8f5e9;padding:16px;border-radius:8px;margin-bottom:20px;text-align:center">
         <p style="margin:0;font-size:16px">📅 定投日：<strong>{buy_str}</strong></p>
-        <p style="margin:4px 0 0;font-size:13px;color:#666">（1号+7天规则 → 避开月初资金流入效应）</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#666">（每月第一个周四 → 避开月初资金流入效应）</p>
     </div>
 
     <h2 style="border-bottom:2px solid #0f3460;padding-bottom:8px;margin-top:0">
@@ -506,7 +539,7 @@ def do_check(prices, all_days, state, dry_run=False):
             buy_str = buy_dt.strftime('%Y-%m-%d') if hasattr(buy_dt, 'strftime') else str(buy_dt)[:10]
         else:
             # 数据尚未覆盖到定投日，用日历估算
-            est = datetime(datetime.now().year, datetime.now().month, 1) + timedelta(days=7)
+            est = _estimate_thu(datetime.now().year, datetime.now().month)
             buy_str = est.strftime('%Y-%m-%d') + ' (日历估算，数据未覆盖)'
         if next_buy is not None and hasattr(next_buy, 'strftime'):
             next_str = next_buy.strftime('%Y-%m-%d')
@@ -518,7 +551,7 @@ def do_check(prices, all_days, state, dry_run=False):
             if next_month > 12:
                 next_month = 1
                 next_year += 1
-            est = datetime(next_year, next_month, 1) + timedelta(days=7)
+            est = _estimate_thu(next_year, next_month)
             next_str = est.strftime('%Y-%m-%d') + ' (日历估算)'
         print(f"  📅 今天不是定投日。本月定投日: {buy_str}  |  下月预计: {next_str}")
         return
