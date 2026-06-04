@@ -1,5 +1,21 @@
 # 项目日志 — stock
 
+## [2026-06-04 01:00] 修正对比基准：3x轮动 vs 同杠杆3x B&H
+
+- **输入命令**: "打败打败 B&H 是打败B&H 股票还是 打败B&H三倍杠杆"
+- **PROJECT_INDEX 变更**: 新增 `code/rotation_vs_levered_bh.py`，更新 `LEVERAGED_ROTATION_STRATEGY.md`
+- **关键发现**:
+  1. **之前「打败B&H」混在一起，现在分开**：vs 3x BH（公平）和 vs 1x BH（参考）
+  2. 同杠杆下轮动的真正价值是**避坑保底**（打败差3x BH 78–90%），不是超额收益（打败好3x BH 仅 10–44%）
+  3. NVDA-GOOGL 取代 NVDA-MU 成为最优推荐：打败差3x BH 达90%（vs NVDA-MU 78%），且0% KO
+  4. GOOGL-AMZN 轮动完全无效（打败差3x BH 仅30%），两股相关性太高
+  5. 策略文档已全面修正：核心结论、排名表、推荐配置均改为公平对比基准
+- **生成/修改的文件**:
+  | 文件 | 说明 |
+  |------|------|
+  | `code/rotation_vs_levered_bh.py` | 公平对比脚本：3x轮动 vs 3x B&H vs 1x B&H |
+  | `LEVERAGED_ROTATION_STRATEGY.md` | 大幅修正：对比基准、排名、推荐配置 |
+
 ## [2026-06-04 00:30] 生成可落地杠杆投资策略文档
 
 - **输入命令**: "根据上面所有回测结果 生成一个可落地的杠杆投资策略"
