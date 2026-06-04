@@ -1,5 +1,33 @@
 # 项目日志 — stock
 
+## [2026-06-04 02:00] 7股排列组合35组三股轮动 + 全网配对筛选
+
+- **输入命令**: "NVDA MU TSLA PLTR AVGO ASML 和AMD 这几只股票3个一组 排列组合 回测 找最佳组合" / "找全网能和NVDA MU 配组的股票"
+- **PROJECT_INDEX 变更**: 新增多个脚本、数据、图表
+- **关键发现**:
+  1. **三股轮动碾压两股**：ORCL+MSFT+AMZN 3x/50% 打出 10/10 打败同杠杆下最差和最好 B&H 的完美战绩
+  2. **TSLA+PLTR 是黄金底板**：跨行业（电动车+AI软件）搭配任何半导体都是 Top 6
+  3. **35组排名第一**：MU+TSLA+PLTR 3x/50%，年均+505%，6/6 打败差 BH
+  4. **十年最稳**：MU+AVGO+ASML 3x/25%，10/10 打败差 BH，7/10 打败好 BH，零 KO
+  5. **跨行业 > 同行业**：纯半导体组合排名靠后，混合电动车/AI软件/半导体的组合最强
+  6. **PLTR 虽仅有6年数据，但含它的组合零 KO**，且全部 Top 7
+  7. **三股轮动核心优势**：卖出资金平分到两只股票，不会"换错了"，比两股轮动稳得多
+  8. **半导体配对筛选 Top 3**：AVGO、ASML、AMD 跟 NVDA/MU 配对效果最好
+- **生成/修改的文件**:
+  | 文件 | 说明 |
+  |------|------|
+  | `code/rotation_3stock.py` | ORCL+MSFT+AMZN 三股轮动完整扫描 |
+  | `code/rotation_3stock_summary.py` | 三股轮动年均收益汇总 |
+  | `code/rotation_3stock_oneyear.py` | 2025-2026 单年明细+图表 |
+  | `code/screen_rotation_partners.py` | 12只候选股与NVDA/MU配对筛选 |
+  | `code/rotation_3stock_all35.py` | C(7,3)=35组三股排列组合扫描 |
+  | `image/rotation_3stock_scan.png` | 三股阈值杠杆扫描总图 |
+  | `image/rotation_3stock_oneyear.png` | 2025-2026 三股轮动明细图 |
+  | `data/ORCL_2016_daily.csv` | Oracle 2016-2026 日线 |
+  | `data/MSFT_2016_daily.csv` | Microsoft 2016-2026 日线 |
+  | `code/rotation_vs_levered_bh.py` | 公平对比脚本（3x轮动 vs 3x B&H） |
+  | `LEVERAGED_ROTATION_STRATEGY.md` | 修正后策略文档 |
+
 ## [2026-06-04 01:00] 修正对比基准：3x轮动 vs 同杠杆3x B&H
 
 - **输入命令**: "打败打败 B&H 是打败B&H 股票还是 打败B&H三倍杠杆"
