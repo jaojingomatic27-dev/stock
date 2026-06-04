@@ -278,8 +278,18 @@ def build_buy_email(prices, buy_date, fx_rate=None):
     import random
     cheer = random.choice(CHEER_MSGS)
 
-    # ── 计算 RSI（在加载时算好了）──
-    # 我们稍后在主流程中传入
+    # 未来 7 个月定投日
+    now = datetime.now()
+    schedule = []
+    for offset in range(7):
+        m = now.month + offset
+        y = now.year
+        while m > 12:
+            m -= 12
+            y += 1
+        est = _estimate_thu(y, m)
+        dow_name = ['周一','周二','周三','周四','周五','周六','周日'][est.weekday()]
+        schedule.append((y, m, est, dow_name))
 
     # ── 纯文本 ──
     lines = []
@@ -308,6 +318,11 @@ def build_buy_email(prices, buy_date, fx_rate=None):
             lines.append(f"     {ticker}: {shares:.4f} 股")
     lines.append("")
     lines.append(cheer)
+    lines.append("")
+    lines.append("📅 未来 7 个月定投日：")
+    for y, m, est, dow_name in schedule:
+        marker = ' ← 今天' if (y == now.year and m == now.month) else ''
+        lines.append(f"   {y}-{m:02d}: {est.strftime('%m/%d')} ({dow_name}){marker}")
     lines.append("")
     lines.append("📌 下期预告：一周后自动发 RSI 跟进邮件，评价本次买入质量。")
     lines.append("📌 脚本: code/dca_monthly_reminder.py")
@@ -369,6 +384,29 @@ def build_buy_email(prices, buy_date, fx_rate=None):
     <div style="background:linear-gradient(135deg,#e8eaf6,#c5cae9);padding:20px;border-radius:8px;margin:20px 0;text-align:center">
         <p style="margin:0;font-size:17px;font-weight:bold;color:#1a237e">{cheer}</p>
     </div>
+
+    <h3 style="margin:20px 0 8px">📅 未来 7 个月定投日</h3>
+    <table style="width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:13px">
+        <thead>
+            <tr style="background:#f0f4ff">
+                <th style="padding:6px 10px;text-align:left;border-bottom:1px solid #ccc">月份</th>
+                <th style="padding:6px 10px;text-align:center;border-bottom:1px solid #ccc">日期</th>
+                <th style="padding:6px 10px;text-align:center;border-bottom:1px solid #ccc">星期</th>
+                <th style="padding:6px 10px;text-align:center;border-bottom:1px solid #ccc">状态</th>
+            </tr>
+        </thead>
+        <tbody>
+            {''.join(
+                f'<tr style="background:{"#e8f5e9" if y==now.year and m==now.month else "white"}">'
+                f'<td style="padding:6px 10px;border-bottom:1px solid #eee"><strong>{y}年{m}月</strong></td>'
+                f'<td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center">{est.strftime("%m/%d")}</td>'
+                f'<td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center">{dow_name}</td>'
+                f'<td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center">{"🔔 今天" if y==now.year and m==now.month else "⏳ 待定投"}</td>'
+                f'</tr>'
+                for y, m, est, dow_name in schedule
+            )}
+        </tbody>
+    </table>
 
     <div style="background:#fafafa;padding:12px;border-radius:8px;margin:16px 0;text-align:center">
         <p style="margin:0;font-size:12px;color:#999">
