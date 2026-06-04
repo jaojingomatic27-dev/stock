@@ -1,8 +1,8 @@
 {
   "version": 1,
   "created": "2026-06-04",
-  "updated": "2026-06-04 14:25",
-  "name": "PLTR+SMCI+TSLA",
+  "updated": "2026-06-04 14:44",
+  "name": "窜天猴（PLTR+SMCI+TSLA）",
   "threshold": 0.4,
   "total_invested": 1792.81,
   "currency": "EUR",
@@ -96,6 +96,16 @@
     },
     {
       "date": "2026-06-04 14:25",
+      "total_value": 1849.8,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 14:33",
+      "total_value": 1849.5900000000001,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 14:44",
       "total_value": 1849.8,
       "had_signal": false
     }
