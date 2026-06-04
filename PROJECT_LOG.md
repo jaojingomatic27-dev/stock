@@ -1,5 +1,22 @@
 # 项目日志 — stock
 
+## [2026-06-04 17:00] DCA 定投月度邮件提醒系统
+
+- **输入命令**: "每月在买入最佳时间给我发电子邮件提醒我定投 邮件要有股票信息和比例 并加上鼓励加油的话。提醒邮件一周后计算rsi 再给我发邮件告诉我 当时买的rsi 是多少 怎么样"
+- **PROJECT_INDEX 变更**: 新增 `code/dca_monthly_reminder.py`、`code/setup_dca_scheduled_task.ps1`、`data/dca_reminder_state.json`
+- **关键发现**:
+  1. 实现双邮件系统：①每月"1号+7天"定投提醒 ②一周后 RSI 跟进复盘
+  2. 邮件内容：组合配置表（SPY $200 + NVDA $1200 + AVGO $600）、当前价格、约买入股数、鼓励语
+  3. RSI 跟进：评价每只股票当时的 RSI 水平（5档：超卖/偏低/中性/偏高/超买）+ 涨跌对比
+  4. 脚本每天 09:00 运行，内部判断是否为定投日/跟进日，非相关日静默退出
+  5. 鼓励语库：10 条随机，每次不同
+- **生成/修改的文件**:
+  | 文件 | 说明 |
+  |------|------|
+  | `code/dca_monthly_reminder.py` | 月度定投提醒 + RSI 跟进双邮件系统 |
+  | `code/setup_dca_scheduled_task.ps1` | Windows 定时任务（每天 09:00） |
+  | `data/dca_reminder_state.json` | 定投状态记录（buy date/rsi/prices/history） |
+
 ## [2026-06-04 16:30] DCA 全部分析结果同步到 DCA_RULES_FINAL
 
 - **输入命令**: "把上面的所有结果同步到 DCA_RULES_FINAL"

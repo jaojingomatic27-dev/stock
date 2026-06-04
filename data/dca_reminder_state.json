@@ -1,0 +1,11 @@
+{
+  "last_buy_date": "2026-06-04",
+  "last_buy_prices": {
+    "SPY": 759.36,
+    "NVDA": 214.75,
+    "AVGO": 479.23
+  },
+  "rsi_at_buy": {},
+  "rsi_followup_sent": false,
+  "history": []
+}
