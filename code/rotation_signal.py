@@ -35,6 +35,7 @@ import yfinance as yf
 # ═══════════════════════════════════════════════════════════════
 
 PORTFOLIO_PATH = r'C:\AI\cc\stock\data\portfolio.json'
+ENV_PATH = r'C:\AI\cc\stock\.env'
 DEFAULT_THRESHOLD = 0.40  # 40% 回撤触发轮动
 
 # 颜色（Windows 终端 ANSI）
@@ -45,14 +46,27 @@ C = {
     'grey': '\033[90m',
 }
 
-# 邮件配置（Phase 2，从环境变量或 .env 读取）
+# 邮件配置（从环境变量或 .env 文件读取）
+def _load_env(path: str) -> dict:
+    """加载 .env 文件中的键值对。"""
+    env = {}
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, val = line.split('=', 1)
+                    env[key.strip()] = val.strip().strip('"').strip("'")
+    return env
+
+_env = _load_env(ENV_PATH)
 EMAIL_CONFIG = {
-    'enabled': False,
-    'smtp_host': 'smtp.gmail.com',
-    'smtp_port': 587,
-    'username': os.environ.get('SIGNAL_EMAIL_USER', ''),
-    'password': os.environ.get('SIGNAL_EMAIL_PASS', ''),
-    'to': os.environ.get('SIGNAL_EMAIL_TO', ''),
+    'enabled': bool(_env.get('SIGNAL_EMAIL_USER') or os.environ.get('SIGNAL_EMAIL_USER')),
+    'smtp_host': _env.get('SIGNAL_SMTP_HOST', 'smtp.gmail.com'),
+    'smtp_port': int(_env.get('SIGNAL_SMTP_PORT', '587')),
+    'username': _env.get('SIGNAL_EMAIL_USER', '') or os.environ.get('SIGNAL_EMAIL_USER', ''),
+    'password': _env.get('SIGNAL_EMAIL_PASS', '') or os.environ.get('SIGNAL_EMAIL_PASS', ''),
+    'to': _env.get('SIGNAL_EMAIL_TO', '') or os.environ.get('SIGNAL_EMAIL_TO', ''),
 }
 
 # ═══════════════════════════════════════════════════════════════
@@ -455,29 +469,106 @@ def print_footer(signal: dict, pf: Portfolio):
 # 邮件通知
 # ═══════════════════════════════════════════════════════════════
 
-def send_email(subject: str, body: str):
-    """发送邮件通知（仅当 EMAIL_CONFIG 启用时）。"""
+def send_email(subject: str, body_plain: str, body_html: str = None, always: bool = False):
+    """发送邮件通知。
+
+    Args:
+        subject: 邮件主题
+        body_plain: 纯文本正文
+        body_html: HTML 正文（可选）
+        always: True = 即使无信号也发每日摘要；False = 仅触发信号时发
+    """
     if not EMAIL_CONFIG['enabled']:
-        print(f"{C['grey']}  邮件通知未启用。设置环境变量 SIGNAL_EMAIL_* 以启用。{C['reset']}")
         return False
 
     try:
-        msg = MIMEMultipart()
+        msg = MIMEMultipart('alternative')
         msg['From'] = EMAIL_CONFIG['username']
         msg['To'] = EMAIL_CONFIG['to']
         msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        msg.attach(MIMEText(body_plain, 'plain', 'utf-8'))
+        if body_html:
+            msg.attach(MIMEText(body_html, 'html', 'utf-8'))
 
         with smtplib.SMTP(EMAIL_CONFIG['smtp_host'], EMAIL_CONFIG['smtp_port']) as server:
             server.starttls()
             server.login(EMAIL_CONFIG['username'], EMAIL_CONFIG['password'])
             server.send_message(msg)
 
-        print(f"{C['green']}  📧 邮件已发送至 {EMAIL_CONFIG['to']}{C['reset']}")
+        print(f"  {C['green']}📧 邮件已发送 → {EMAIL_CONFIG['to']}{C['reset']}")
         return True
     except Exception as e:
-        print(f"{C['red']}  ✗ 邮件发送失败: {e}{C['reset']}")
+        print(f"  {C['red']}✗ 邮件发送失败: {e}{C['reset']}")
         return False
+
+
+def build_email(positions_data: List[dict], signal: dict, pf: Portfolio, fx_rate: float) -> Tuple[str, str]:
+    """构建邮件正文（纯文本 + HTML）。"""
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    threshold = pf.data['threshold']
+
+    # ── 纯文本 ──
+    lines = []
+    lines.append(f"三股轮动持仓报告 — {now}")
+    lines.append(f"阈值: {threshold*100:.0f}% | EUR/USD: {fx_rate:.4f}")
+    lines.append("=" * 45)
+
+    for p in positions_data:
+        dd = p['dd_pct']
+        flag = '!! 卖出 !!' if p['breached'] else ('关注' if dd <= -20 else '持有')
+        lines.append(f"  {p['label']:<16} EUR {p['current_value']:>9,.2f}  "
+                     f"peak EUR {p['peak_value']:>9,.2f}  DD {dd:>+6.1f}%  {flag}")
+
+    lines.append("=" * 45)
+    lines.append(f"总市值: EUR {signal['total_value']:,.2f}")
+
+    if signal['has_signal']:
+        lines.append(f"\n!!! 轮动信号触发 !!!")
+        lines.append(f"\n确认执行: python rotation_signal.py --confirm")
+
+    plain = '\n'.join(lines)
+
+    # ── HTML ──
+    bg_color = '#FFF3E0' if signal['has_signal'] else '#F5F5F5'
+    html = f"""<html><body style="font-family: Consolas, monospace; background:{bg_color}; padding:15px;">
+<h2 style="color:#333;">📊 三股轮动持仓报告 — {now}</h2>
+<p style="color:#666;">阈值: {threshold*100:.0f}% | EUR/USD: {fx_rate:.4f}</p>
+<table style="border-collapse:collapse; width:100%; background:white; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+<tr style="background:#37474F; color:white;">
+<th style="padding:8px 12px; text-align:left;">仓位</th>
+<th style="padding:8px 12px; text-align:right;">权证价</th>
+<th style="padding:8px 12px; text-align:right;">市值</th>
+<th style="padding:8px 12px; text-align:right;">Peak</th>
+<th style="padding:8px 12px; text-align:right;">回撤</th>
+<th style="padding:8px 12px; text-align:center;">状态</th>
+</tr>"""
+    for p in positions_data:
+        dd = p['dd_pct']
+        if p['breached']:
+            row_color = '#FFEBEE'; dd_color = '#D32F2F'; status = '🔴 卖出'
+        elif dd <= -20:
+            row_color = '#FFF8E1'; dd_color = '#F57F17'; status = '🟡 关注'
+        else:
+            row_color = '#E8F5E9'; dd_color = '#388E3C'; status = '🟢 持有'
+        html += f"""<tr style="background:{row_color};">
+<td style="padding:8px 12px;">{p['label']}</td>
+<td style="padding:8px 12px; text-align:right;">€{p['current_price']:.4f}</td>
+<td style="padding:8px 12px; text-align:right;">€{p['current_value']:,.2f}</td>
+<td style="padding:8px 12px; text-align:right;">€{p['peak_value']:,.2f}</td>
+<td style="padding:8px 12px; text-align:right; color:{dd_color}; font-weight:bold;">{dd:+.1f}%</td>
+<td style="padding:8px 12px; text-align:center;">{status}</td>
+</tr>"""
+    html += f"""<tr style="background:#ECEFF1; font-weight:bold;">
+<td style="padding:8px 12px;" colspan="2">总市值: €{signal['total_value']:,.2f}</td>
+<td style="padding:8px 12px;" colspan="4"></td>
+</tr></table>"""
+
+    if signal['has_signal']:
+        html += f"""<div style="margin-top:15px; padding:12px; background:#FFEBEE; border-left:4px solid #D32F2F; border-radius:4px;">
+<h3 style="color:#D32F2F; margin:0;">⚠️ 轮动信号触发！</h3><p style="margin:8px 0 0;">运行 <code>python rotation_signal.py --confirm</code> 确认执行。</p></div>"""
+
+    html += f"""<p style="color:#999; font-size:12px; margin-top:20px;">自动生成 | rotation_signal.py | {now}</p></body></html>"""
+    return plain, html
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -664,29 +755,26 @@ def main():
         print(signal['details'])
 
     # ── 邮件 ──
-    if args.email and signal['has_signal']:
-        body_lines = ["三股轮动信号触发！\n"]
-        body_lines.append(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-        body_lines.append(f"阈值: {threshold*100:.0f}%\n")
+    if args.email:
+        # 构建邮件数据
+        pos_data = []
+        for p in active:
+            dd = (p['current_value'] - p['peak_value']) / p['peak_value'] * 100 if p['peak_value'] > 0 else 0
+            breached = signal['has_signal'] and p['id'] in signal.get('breached', [])
+            pos_data.append({
+                'label': p['label'], 'current_price': p['current_price'],
+                'current_value': p['current_value'], 'peak_value': p['peak_value'],
+                'dd_pct': dd, 'breached': breached,
+            })
 
-        for pid in signal['breached']:
-            for p in pf.data['positions']:
-                if p['id'] == pid:
-                    dd = (p['current_value'] - p['peak_value']) / p['peak_value'] * 100
-                    body_lines.append(f"卖出: {p['label']} (回撤 {dd:.1f}%)")
-                    break
-
-        if signal.get('survivors'):
-            body_lines.append(f"\n加仓: {', '.join(p['label'] for p in signal['survivors'])}")
-
-        body_lines.append(f"\n\n运行 python rotation_signal.py --confirm 确认执行。")
-        send_email("⚠️ 轮动信号触发", '\n'.join(body_lines))
-    elif args.email:
-        # 每日摘要
-        body_lines = ["每日持仓报告\n"]
-        body_lines.append(f"总市值: €{signal['total_value']:,.2f}")
-        body_lines.append(f"信号: {'触发' if signal['has_signal'] else '无'}")
-        send_email("📊 每日持仓报告", '\n'.join(body_lines))
+        subject = '⚠️ 轮动信号触发!' if signal['has_signal'] else '📊 每日持仓报告'
+        plain, html = build_email(pos_data, signal, pf, fx_rate)
+        send_email(subject, plain, html)
+    elif not EMAIL_CONFIG['enabled']:
+        pass  # 未配置邮件，静默
+    else:
+        # 邮件已配置但未指定 --email，提示
+        pass
 
 
 if __name__ == '__main__':
