@@ -1,5 +1,26 @@
 # 项目日志 — stock
 
+## [2026-06-04 22:00] 双定时任务上线：持仓报告 + DCA 提醒
+
+- **输入命令**: "邮件是自动发吗 几点发" → "那个每日持仓报告自动发了吗" → "为什么不是自动发的" → "把这两个一样问题的也改了呀" → "方案 A"
+- **PROJECT_INDEX 变更**: 新增 `code/setup_scheduled_tasks_s4u.ps1`
+- **关键发现**:
+  1. 两个定时任务均已创建并升级为 **Interactive/Background** 模式（锁屏也能跑）
+  2. `Register-ScheduledTask -LogonType S4U` 在 Windows 10 19043 上有权限问题，改用 `schtasks /NP` 成功
+  3. `-LogonType Password` 对 Microsoft 账户无效（密码认证失败），`S4U` 需特定 OS 版本，`schtasks /NP` 最可靠
+  4. 日志模式 `Interactive/Background` = 锁屏/休眠唤醒/未登录都能跑
+- **生成/修改的文件**:
+  | 文件 | 说明 |
+  |------|------|
+  | `code/setup_scheduled_tasks_s4u.ps1` | 管理员级定时任务安装脚本（schtasks /NP 版） |
+
+### 定时任务总览
+
+| 任务 | 时间 | 命令 | 模式 |
+|------|:--:|------|:--:|
+| StockRotationSignal | 04:30 | `rotation_signal.py --check-all --email` | Interactive/Background |
+| DCA_Monthly_Reminder | 09:00 | `dca_monthly_reminder.py` | Interactive/Background |
+
 ## [2026-06-04 21:00] 多路线复利推演：轮动 + DCA 到 €1M/€10M
 
 - **输入命令**: "MU + ORCL + AM组合的年化" → "10年 CAGR 是多少" → "保持三股轮动本金×10 加上定投 多长时间之后到1百万" → "定投加到 $3000" → "定投3000到铁三角和窜天猴" → "轮动 10× + DCA $3K → NVDA/AVGO/SPY什么时候到1千万"

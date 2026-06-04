@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created": "2026-06-04",
-  "updated": "2026-06-04 15:18",
+  "updated": "2026-06-04 22:37",
   "name": "窜天猴（PLTR+SMCI+TSLA）",
   "threshold": 0.4,
   "total_invested": 1792.81,
@@ -19,8 +19,8 @@
       "entry_price": 4.207,
       "entry_date": "2026-06-04",
       "peak_price": 3.8304,
-      "current_price": 3.8304,
-      "current_value": 547.75,
+      "current_price": 3.7958,
+      "current_value": 542.8,
       "peak_value": 547.75,
       "active": true,
       "transaction_history": [
@@ -45,8 +45,8 @@
       "entry_price": 12.73,
       "entry_date": "2026-06-04",
       "peak_price": 14.9665,
-      "current_price": 14.9665,
-      "current_value": 703.43,
+      "current_price": 14.5518,
+      "current_value": 683.93,
       "peak_value": 703.43,
       "active": true,
       "transaction_history": [
@@ -71,8 +71,8 @@
       "entry_price": 12.1,
       "entry_date": "2026-06-04",
       "peak_price": 12.2302,
-      "current_price": 12.2302,
-      "current_value": 599.28,
+      "current_price": 11.8051,
+      "current_value": 578.45,
       "peak_value": 599.28,
       "active": true,
       "transaction_history": [
@@ -127,6 +127,11 @@
     {
       "date": "2026-06-04 15:18",
       "total_value": 1850.46,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 22:37",
+      "total_value": 1805.1799999999998,
       "had_signal": false
     }
   ]
