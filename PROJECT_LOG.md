@@ -1,5 +1,23 @@
 # 项目日志 — stock
 
+## [2026-06-04 15:15] 换仓策略：杠杆衰减管理 + 信号系统提醒
+
+- **输入命令**: "杠杆弱化到多少换仓 收益最大 回测十年窜天猴和铁三角"
+- **PROJECT_INDEX 变更**: 新增 `code/backtest_rebalance_rule.py`、`code/leverage_decay.py`，修改 `rotation_signal.py`、`LEVERAGED_ROTATION_STRATEGY.md`
+- **关键发现**:
+  1. 铁三角最优换仓规则：**杠杆 < 3x 时换**（年均 +353% vs 永不换 +148%，4/10 KO）
+  2. 窜天猴最优换仓规则：**正股涨 > 70% 再换**（年均 +290%，3/6 KO；换太勤 = ALL KO）
+  3. 窜天猴换仓太激进（杠杆<3x、涨>30%）直接全灭——高波动股必须给足安全边际
+  4. 信号系统新增 `get_rebalance_advice()`：按分组策略自动判断，终端/邮件均提醒
+  5. 新增 `--mark-rebalanced` CLI：换仓后更新 ref_stock_price
+- **生成/修改的文件**:
+  | 文件 | 说明 |
+  |------|------|
+  | `code/backtest_rebalance_rule.py` | 9 种换仓规则 × 2 组 十年回测 |
+  | `code/leverage_decay.py` | 6 只权证杠杆衰减曲线分析 |
+  | `LEVERAGED_ROTATION_STRATEGY.md` | 新增第十章：Turbo 权证换仓策略 |
+  | `code/rotation_signal.py` | +get_rebalance_advice()、+mark_rebalanced、邮件/终端换仓提醒 |
+
 ## [2026-06-04 14:25] 新增第二组轮动（PLTR+SMCI+TSLA）+ 多组支持
 
 - **输入命令**: "再加一个三只涡轮权证轮动...算上之前的轮动 现在一共是两个轮动 最后发个邮件 把两个轮动"

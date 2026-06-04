@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created": "2026-06-04",
-  "updated": "2026-06-04 14:44",
+  "updated": "2026-06-04 15:14",
   "name": "铁三角（NVDA+MSFT+ORCL）",
   "threshold": 0.4,
   "total_invested": 1891.16,
@@ -18,10 +18,10 @@
       "shares": 190.0,
       "entry_price": 4.132,
       "entry_date": "2026-06-04",
-      "peak_price": 3.2819,
-      "current_price": 3.2819,
-      "current_value": 623.56,
-      "peak_value": 623.56,
+      "peak_price": 3.283,
+      "current_price": 3.283,
+      "current_value": 623.77,
+      "peak_value": 623.77,
       "active": true,
       "transaction_history": [
         {
@@ -44,10 +44,10 @@
       "shares": 67.0,
       "entry_price": 7.385,
       "entry_date": "2026-06-04",
-      "peak_price": 7.4396,
-      "current_price": 7.4396,
-      "current_value": 498.45,
-      "peak_value": 498.45,
+      "peak_price": 7.4422,
+      "current_price": 7.4422,
+      "current_value": 498.63,
+      "peak_value": 498.63,
       "active": true,
       "transaction_history": [
         {
@@ -70,10 +70,10 @@
       "shares": 143.0,
       "entry_price": 4.27,
       "entry_date": "2026-06-04",
-      "peak_price": 3.6919,
-      "current_price": 3.6919,
-      "current_value": 527.94,
-      "peak_value": 527.94,
+      "peak_price": 3.6932,
+      "current_price": 3.6932,
+      "current_value": 528.13,
+      "peak_value": 528.13,
       "active": true,
       "transaction_history": [
         {
@@ -132,6 +132,16 @@
     {
       "date": "2026-06-04 14:44",
       "total_value": 1649.95,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 15:14",
+      "total_value": 1650.53,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 15:14",
+      "total_value": 1650.53,
       "had_signal": false
     }
   ]

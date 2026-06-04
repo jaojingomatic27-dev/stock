@@ -135,6 +135,38 @@ def calc_effective_leverage(stock_usd: float, strike_usd: float) -> float:
     return stock_usd / (stock_usd - strike_usd)
 
 
+def get_rebalance_advice(pos: dict, stock_price: float, fx_rate: float, group_name: str) -> str or None:
+    """根据分组策略判断是否需要换仓。返回建议字符串或 None。
+
+    铁三角：杠杆 < 3x 时提醒
+    窜天猴：正股累计涨幅 > 70% 时提醒
+    """
+    strike = pos['strike_usd']
+    ratio = pos['ratio']
+    if stock_price <= strike or ratio <= 0:
+        return None
+
+    leverage = stock_price / (stock_price - strike)
+
+    # 正股累计涨幅（从上次换仓/入场算起）
+    ref_stock = pos.get('ref_stock_price')
+    if ref_stock is None:
+        # 首次：从入场价反推
+        ref_stock = strike + pos['entry_price'] * fx_rate / ratio
+    stock_gain = (stock_price - ref_stock) / ref_stock if ref_stock and ref_stock > 0 else 0
+
+    if '铁三角' in group_name:
+        if leverage < 3.0:
+            return (f"💡 建议换仓：{pos['label']} 杠杆已降至 {leverage:.1f}x（铁三角阈值 3.0x），"
+                    f"正股累涨 {stock_gain*100:.0f}%")
+    elif '窜天猴' in group_name:
+        if stock_gain > 0.70:
+            return (f"💡 建议换仓：{pos['label']} 正股累涨 {stock_gain*100:.0f}%（窜天猴阈值 70%），"
+                    f"杠杆已降至 {leverage:.1f}x")
+
+    return None
+
+
 # ═══════════════════════════════════════════════════════════════
 # Portfolio 管理
 # ═══════════════════════════════════════════════════════════════
@@ -186,6 +218,7 @@ class Portfolio:
                 'shares': p['shares'],
                 'entry_price': p['entry_price'],
                 'entry_date': p.get('entry_date', date.today().isoformat()),
+                'ref_stock_price': p.get('ref_stock_price'),  # 上次换仓时的正股价（None=入场）
                 'peak_price': p['entry_price'],  # 第一天，peak = 买入价
                 'current_price': p['entry_price'],
                 'current_value': round(p['shares'] * p['entry_price'], 2),
@@ -387,6 +420,22 @@ class Portfolio:
             if p['id'] == pid:
                 return p['label']
         return str(pid)
+
+    def mark_rebalanced(self, label: str, stock_price: float):
+        """标记某仓位已换仓，更新 ref_stock_price。"""
+        for p in self.data['positions']:
+            if p['active'] and p['label'] == label:
+                p['ref_stock_price'] = round(stock_price, 2)
+                p['transaction_history'].append({
+                    'date': date.today().isoformat(),
+                    'action': 'REBALANCE (new Turbo)',
+                    'price': p['current_price'],
+                    'shares': p['shares'],
+                    'value': p['current_value'],
+                })
+                self.save()
+                return True
+        return False
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -674,6 +723,8 @@ def build_combined_email(all_results: list, all_fx_rates: dict) -> Tuple[str, st
         lines.append(f"  总市值: EUR {total:,.2f}  (盈亏 {pnl:+.1f}%)")
         if grp['signal']['has_signal']:
             lines.append(f"  ⚠️ 轮动信号触发！")
+        for advice in grp.get('rebalance_advice', []):
+            lines.append(f"  {advice}")
 
     if any_signal:
         lines.append(f"\n!!! 确认执行: python rotation_signal.py --confirm !!!")
@@ -728,6 +779,11 @@ def build_combined_email(all_results: list, all_fx_rates: dict) -> Tuple[str, st
             html += f"""<div style="padding:10px; background:#FFEBEE; border-left:4px solid #D32F2F; border-radius:4px; margin-bottom:8px;">
 <strong style="color:#D32F2F;">⚠️ 轮动信号触发！</strong> 运行 <code>python rotation_signal.py -p {grp.get('file','')} --confirm</code></div>"""
 
+        # 换仓建议
+        for advice in grp.get('rebalance_advice', []):
+            html += f"""<div style="padding:8px 12px; background:#FFF8E1; border-left:4px solid #F57F17; border-radius:4px; margin-bottom:4px; font-size:14px;">
+        {advice}</div>"""
+
     html += f"""<p style="color:#999; font-size:12px; margin-top:20px;">自动生成 | rotation_signal.py | {now}</p></body></html>"""
     return plain, html
 
@@ -779,9 +835,20 @@ def run_single_check(portfolio_path: str, threshold_override: float = None,
         pf.data['check_history'] = pf.data['check_history'][-60:]
     pf.save()
 
+    # 换仓建议
+    rebalance_advice = []
+    grp_name = pf.data.get('name', '')
+    for p in active:
+        ticker = p['underlying']
+        if ticker in stock_prices and stock_prices[ticker] is not None:
+            advice = get_rebalance_advice(p, stock_prices[ticker], fx_rate, grp_name)
+            if advice:
+                rebalance_advice.append(advice)
+
     return {
         'pf': pf, 'signal': signal, 'stock_prices': stock_prices,
         'fx_rate': fx_rate, 'active': active, 'threshold': threshold, 'error': None,
+        'rebalance_advice': rebalance_advice,
     }
 
 
@@ -802,6 +869,9 @@ def print_single_report(result: dict):
     print_footer(signal, pf)
     if signal.get('details'):
         print(signal['details'])
+    # 换仓建议
+    for advice in result.get('rebalance_advice', []):
+        print(f"  {C['yellow']}{advice}{C['reset']}")
 
 def parse_manual_prices(arg: str) -> Dict[str, float]:
     """解析 --manual 参数。格式: 'NVDA Turbo:5.71,MSFT Turbo:8.30'"""
@@ -830,11 +900,60 @@ def main():
     parser.add_argument('--reset-peaks', action='store_true', help='重置所有 peak 为当前市值 (Day 1)')
     parser.add_argument('--portfolio', '-p', type=str, default=None,
                         help='指定 portfolio 文件路径 (默认: portfolio.json)')
+    parser.add_argument('--mark-rebalanced', type=str, default=None,
+                        help='标记仓位已换仓 (如 --mark-rebalanced "NVDA Turbo")')
     args = parser.parse_args()
 
     # ── --init ──
     if args.init:
         interactive_init()
+        return
+
+    # ── --mark-rebalanced ──
+    if args.mark_rebalanced:
+        label = args.mark_rebalanced
+        # 确定要操作的 portfolio
+        target_path = args.portfolio if args.portfolio else PORTFOLIO_PATH
+        if args.check_all:
+            # 遍历所有 portfolio，找到匹配的仓位
+            for pf_path in find_all_portfolios():
+                pf = Portfolio(pf_path)
+                if pf.exists():
+                    pf.load()
+                    # 需要当前股价来计算 ref_stock_price
+                    active = pf.get_active_positions()
+                    underlyings = list(set(p['underlying'] for p in active))
+                    stock_prices, fx_rate = fetch_market_data(underlyings)
+                    for p in active:
+                        if p['label'] == label and p['underlying'] in stock_prices:
+                            stock_px = stock_prices[p['underlying']]
+                            if stock_px:
+                                pf.mark_rebalanced(label, stock_px)
+                                grp = pf.data.get('name', '')
+                                print(f"  {C['green']}✓{C['reset']} [{grp}] {label}: ref_stock_price → ${stock_px:.2f}")
+                                return
+            print(f"  {C['red']}✗ 未找到仓位: {label}{C['reset']}")
+        else:
+            pf = Portfolio(target_path)
+            if pf.exists():
+                pf.load()
+                active = pf.get_active_positions()
+                underlyings = list(set(p['underlying'] for p in active))
+                stock_prices, fx_rate = fetch_market_data(underlyings)
+                for p in active:
+                    if p['label'] == label and p['underlying'] in stock_prices:
+                        stock_px = stock_prices[p['underlying']]
+                        if stock_px:
+                            if pf.mark_rebalanced(label, stock_px):
+                                grp = pf.data.get('name', '')
+                                print(f"  {C['green']}✓{C['reset']} [{grp}] {label}: ref_stock_price → ${stock_px:.2f}")
+                            else:
+                                print(f"  {C['red']}✗ 未找到活跃仓位: {label}{C['reset']}")
+                        break
+                else:
+                    print(f"  {C['red']}✗ 未找到仓位: {label}{C['reset']}")
+            else:
+                print(f"  {C['red']}✗ {target_path} 不存在{C['reset']}")
         return
 
     # ── 确定要操作的 portfolio 文件 ──
@@ -904,6 +1023,7 @@ def main():
             'positions_data': pos_data, 'signal': signal,
             'total_invested': pf.data['total_invested'],
             'threshold': threshold,
+            'rebalance_advice': result.get('rebalance_advice', []),
         })
 
     # ── 操作后处理 ──
