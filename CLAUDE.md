@@ -1,74 +1,49 @@
-# CLAUDE.md
+# CLAUDE.md — stock 项目
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+量化回测系统。下载美股数据 (yfinance)，运行策略回测，输出图表 (PNG) 和结果 (CSV)。
 
-## Project overview
+**核心发现**：Buy & Hold 持续跑赢择时策略。固定月供 DCA ($1000) 对强趋势资产最优；增强 DCA 仅在深度熊市有边际价值。
 
-Personal quantitative stock backtesting project. Downloads US stock data via yfinance, runs strategy backtests (MA cross, momentum, enhanced DCA), prints formatted results and generates matplotlib charts saved as PNGs.
+## 环境
 
-**Core finding across all backtests:** Buy & Hold consistently beats active timing strategies. Fixed monthly DCA ($1000) is optimal for strong-trend assets; enhanced DCA rules only add marginal value during deep bear markets.
+- Python 3，全局 `pip install yfinance pandas numpy matplotlib`
+- Windows 路径硬编码 (`C:\AI\cc\stock\`)，不可移植
+- UTF-8 输出包装: `sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')`
 
-## Environment
-
-- Python 3 (no venv configured; install dependencies globally with `pip install yfinance pandas numpy matplotlib`)
-- No `requirements.txt` or `pyproject.toml`
-- Windows paths (`C:\AI\cc\stock\`) are hardcoded throughout — not portable
-
-## Data flow
-
-```
-download_*.py  →  yfinance.download()  →  *_daily.csv  (multi-index columns)
-                                                            ↓
-backtest scripts  ←  pd.read_csv(path, header=[0,1], index_col=0, parse_dates=True)
-                                                            ↓
-                   close = df[("Close", "TICKER")].dropna()
-                                                            ↓
-                   compute signals → print tables → save charts (PNG) + results (CSV)
-```
-
-yfinance output on single-ticker downloads produces a flat column index; multi-ticker downloads produce a MultiIndex `(Price, Ticker)`. Scripts access close prices via `df[("Close", "TICKER")]`.
-
-## Script patterns
-
-Every backtest script is **self-contained** — there is no shared library. Common copy-pasted boilerplate:
+## 数据加载
 
 ```python
-# UTF-8 stdout wrapper (needed for Chinese characters in Windows console)
-import sys, io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
-# Load multi-index CSV
-df = pd.read_csv(r"C:\AI\cc\stock\TICKER_daily.csv", header=[0, 1], index_col=0, parse_dates=True)
+df = pd.read_csv(r"C:\AI\cc\stock\data\TICKER_daily.csv", header=[0,1], index_col=0, parse_dates=True)
 close = df[("Close", "TICKER")].dropna()
-
-# Filter by date
-close = close[close.index >= "2010-01-01"]
 ```
 
-## Key strategies implemented
+yfinance 单 ticker 输出扁平列，多 ticker 输出 MultiIndex `(Price, Ticker)`。
 
-| Strategy | Signal | Files |
-|---|---|---|
-| MA5/MA20 Cross | Golden cross → buy, death cross → sell | `nvda_backtest.py`, `googl_backtest.py`, `all6_backtest.py`, `shy_backtest.py` |
-| Momentum (Jegadeesh-Titman) | Past N-month return > 0 → long, else cash. Formation 3M/6M/12M, skip 1M | `nvda_momentum.py`, `googl_backtest.py`, `all6_backtest.py`, `shy_backtest.py` |
-| Enhanced DCA ($500–$1500) | 6 timing rules vs Fixed $1000 baseline with cash reserve | `dca_backtest.py`, `dca_optimize.py`, `dca_optimize_v2.py`, `dca_2000_2016.py`, `spy_2000_bear.py`, `shy_backtest.py`, `dca_equal_invested.py` |
+## 文件命名
 
-DCA timing rules: Fixed, Drawdown (3M high), RSI(14), MA50 Distance, Bear/Bull MA200 regime, Momentum Adaptive.
+| 类型 | 格式 |
+|------|------|
+| 股票数据 | `data/{TICKER}_daily.csv` |
+| 多股下载 | `data/stocks_daily.csv` |
+| 回测结果 | `data/{TICKER}_equity.csv`, `_trades.csv` |
+| 图表 | `image/{DESCRIPTION}.png` |
+| Turbo 输入 | `input/{Name}.csv` |
 
-## Common patterns when writing new backtests
+## 已实现策略
 
-- Aligning multiple assets to a common start date: `s[s.index >= "2010-01-01"]`
-- Resampling to monthly for momentum: `close.resample("ME").last()`
-- DCA monthly investment days: iterate through prices, detect `(year, month)` changes for first trading day of each month
-- Performance metrics pattern: `ann = ((final / initial) ** (1 / years) - 1) * 100`, `sharpe = np.sqrt(12) * monthly_ret.mean() / monthly_ret.std()`, `max_dd = ((vals - vals.cummax()) / vals.cummax() * 100).min()`
+| 策略 | 信号 | 关键文件 |
+|------|------|----------|
+| MA5/MA20 交叉 | 金叉买入，死叉卖出 | `all6_backtest.py` |
+| 动量 (Jegadeesh-Titman) | 过去 N 月收益 > 0 做多，3M/6M/12M，skip 1M | `all6_backtest.py` |
+| 增强 DCA | 6 种规则 vs 固定 $1000 基准 | `dca_backtest.py`, `dca_optimize_v2.py` |
+| 杠杆轮动 (3 股) | 40% 回撤阈值 + 权证/KO 建模 | `top10_all_trios.py`, `rotation_signal.py`, `backtest_nvda_msft_orcl_turbo.py` |
 
-## CSV file naming
+## 常用公式
 
-- Stock data: `{TICKER}_daily.csv` (e.g., `NVDA_daily.csv`, `SPY_daily.csv`)
-- Multi-stock downloads: `stocks_daily.csv`
-- Strategy results: `{TICKER}_equity.csv`, `{TICKER}_trades.csv`, `{TICKER}_momentum_12M.csv`
-- Multi-panel charts: `{DESCRIPTION}.png`
-
-## .gitignore
-
-Ignores: `__pycache__/`, `*.py[cod]`, `.venv/`, `venv/`, `.vscode/`, `.idea/`, `.DS_Store`, `Thumbs.db`, `.claude/settings.local.json`
+```python
+ann = ((final / initial) ** (1 / years) - 1) * 100
+sharpe = np.sqrt(12) * monthly_ret.mean() / monthly_ret.std()
+max_dd = ((vals - vals.cummax()) / vals.cummax() * 100).min()
+# Turbo 权证: warrant = max(0, stock_usd - strike_usd) * ratio / fx_eurusd
+# 有效杠杆: stock_usd / (stock_usd - strike_usd)
+```

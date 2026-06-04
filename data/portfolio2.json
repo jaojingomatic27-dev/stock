@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "created": "2026-06-04",
+  "updated": "2026-06-04 14:25",
+  "name": "PLTR+SMCI+TSLA",
+  "threshold": 0.4,
+  "total_invested": 1792.81,
+  "currency": "EUR",
+  "positions": [
+    {
+      "id": 0,
+      "label": "PLTR Turbo",
+      "underlying": "PLTR",
+      "product_name": "UBS OE Turbo Call Palantir",
+      "isin": "",
+      "strike_usd": 97.6193,
+      "ratio": 0.1,
+      "shares": 143.0,
+      "entry_price": 4.207,
+      "entry_date": "2026-06-04",
+      "peak_price": 3.829,
+      "current_price": 3.829,
+      "current_value": 547.55,
+      "peak_value": 547.55,
+      "active": true,
+      "transaction_history": [
+        {
+          "date": "2026-06-04",
+          "action": "BUY",
+          "price": 4.207,
+          "shares": 143,
+          "value": 601.6
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "label": "SMCI Turbo",
+      "underlying": "SMCI",
+      "product_name": "HSBC OE Turbo Call Super Micro",
+      "isin": "",
+      "strike_usd": 30.0009,
+      "ratio": 1.0,
+      "shares": 47.0,
+      "entry_price": 12.73,
+      "entry_date": "2026-06-04",
+      "peak_price": 14.9613,
+      "current_price": 14.9613,
+      "current_value": 703.18,
+      "peak_value": 703.18,
+      "active": true,
+      "transaction_history": [
+        {
+          "date": "2026-06-04",
+          "action": "BUY",
+          "price": 12.73,
+          "shares": 47,
+          "value": 598.31
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "label": "TSLA Turbo",
+      "underlying": "TSLA",
+      "product_name": "UBS OE Turbo Call Tesla",
+      "isin": "",
+      "strike_usd": 281.3564,
+      "ratio": 0.1,
+      "shares": 49.0,
+      "entry_price": 12.1,
+      "entry_date": "2026-06-04",
+      "peak_price": 12.2259,
+      "current_price": 12.2259,
+      "current_value": 599.07,
+      "peak_value": 599.07,
+      "active": true,
+      "transaction_history": [
+        {
+          "date": "2026-06-04",
+          "action": "BUY",
+          "price": 12.1,
+          "shares": 49,
+          "value": 592.9
+        }
+      ]
+    }
+  ],
+  "pending_signal": null,
+  "rotation_history": [],
+  "check_history": [
+    {
+      "date": "2026-06-04 14:24",
+      "total_value": 1849.8,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 14:25",
+      "total_value": 1849.8,
+      "had_signal": false
+    }
+  ]
+}

@@ -35,8 +35,20 @@ import yfinance as yf
 # ═══════════════════════════════════════════════════════════════
 
 PORTFOLIO_PATH = r'C:\AI\cc\stock\data\portfolio.json'
+PORTFOLIO2_PATH = r'C:\AI\cc\stock\data\portfolio2.json'
+DATA_DIR = r'C:\AI\cc\stock\data'
 ENV_PATH = r'C:\AI\cc\stock\.env'
 DEFAULT_THRESHOLD = 0.40  # 40% 回撤触发轮动
+
+
+def find_all_portfolios(data_dir: str = None) -> list:
+    """查找所有 portfolio*.json 文件，按文件名排序。"""
+    import glob
+    if data_dir is None:
+        data_dir = DATA_DIR
+    pattern = os.path.join(data_dir, 'portfolio*.json')
+    files = sorted(glob.glob(pattern))
+    return files if files else [PORTFOLIO_PATH]
 
 # 颜色（Windows 终端 ANSI）
 C = {
@@ -637,9 +649,159 @@ def interactive_init():
     print(f"{C['green']}{'═'*50}{C['reset']}\n")
 
 
-# ═══════════════════════════════════════════════════════════════
-# CLI 入口
-# ═══════════════════════════════════════════════════════════════
+def build_combined_email(all_results: list, all_fx_rates: dict) -> Tuple[str, str]:
+    """构建多组轮动的合并邮件（纯文本 + HTML）。
+
+    all_results: [{'name': str, 'positions_data': [...], 'signal': dict, 'total_invested': float, 'threshold': float}, ...]
+    all_fx_rates: {'EUR/USD': float, ...}
+    """
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    any_signal = any(r['signal']['has_signal'] for r in all_results)
+
+    # ── 纯文本 ──
+    lines = [f"杠杆轮动每日报告 — {now}", f"EUR/USD: {all_fx_rates.get('EUR/USD', 'N/A'):.4f}", "=" * 55]
+
+    for grp in all_results:
+        lines.append(f"\n▸ {grp['name']}  (阈值: {grp['threshold']*100:.0f}%)")
+        lines.append("-" * 40)
+        for p in grp['positions_data']:
+            dd = p['dd_pct']
+            flag = '!! 卖出 !!' if p['breached'] else ('关注' if dd <= -20 else '持有')
+            lines.append(f"  {p['label']:<16} EUR {p['current_value']:>9,.2f}  "
+                         f"peak EUR {p['peak_value']:>9,.2f}  DD {dd:>+6.1f}%  {flag}")
+        total = grp['signal']['total_value']
+        pnl = (total - grp['total_invested']) / grp['total_invested'] * 100
+        lines.append(f"  总市值: EUR {total:,.2f}  (盈亏 {pnl:+.1f}%)")
+        if grp['signal']['has_signal']:
+            lines.append(f"  ⚠️ 轮动信号触发！")
+
+    if any_signal:
+        lines.append(f"\n!!! 确认执行: python rotation_signal.py --confirm !!!")
+
+    plain = '\n'.join(lines)
+
+    # ── HTML ──
+    bg_color = '#FFF3E0' if any_signal else '#F5F5F5'
+    html = f"""<html><body style="font-family: Consolas, 'Microsoft YaHei', monospace; background:{bg_color}; padding:15px;">
+<h2 style="color:#333;">📊 杠杆轮动每日报告 — {now}</h2>
+<p style="color:#666;">EUR/USD: {all_fx_rates.get('EUR/USD', 'N/A'):.4f}</p>"""
+
+    for grp in all_results:
+        signal_icon = '⚠️' if grp['signal']['has_signal'] else '✅'
+        total = grp['signal']['total_value']
+        pnl = (total - grp['total_invested']) / grp['total_invested'] * 100
+        pnl_color = '#388E3C' if pnl >= 0 else '#D32F2F'
+
+        html += f"""<h3 style="color:#1565C0; margin-top:20px;">{signal_icon} {grp['name']} <span style="font-weight:normal; font-size:14px; color:#666;">(阈值: {grp['threshold']*100:.0f}%)</span></h3>
+<table style="border-collapse:collapse; width:100%; background:white; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin-bottom:8px;">
+<tr style="background:#37474F; color:white;">
+<th style="padding:8px 12px; text-align:left;">仓位</th>
+<th style="padding:8px 12px; text-align:right;">权证价</th>
+<th style="padding:8px 12px; text-align:right;">市值</th>
+<th style="padding:8px 12px; text-align:right;">Peak</th>
+<th style="padding:8px 12px; text-align:right;">回撤</th>
+<th style="padding:8px 12px; text-align:center;">状态</th>
+</tr>"""
+        for p in grp['positions_data']:
+            dd = p['dd_pct']
+            if p['breached']:
+                row_color = '#FFEBEE'; dd_color = '#D32F2F'; status = '🔴 卖出'
+            elif dd <= -20:
+                row_color = '#FFF8E1'; dd_color = '#F57F17'; status = '🟡 关注'
+            else:
+                row_color = '#E8F5E9'; dd_color = '#388E3C'; status = '🟢 持有'
+            html += f"""<tr style="background:{row_color};">
+<td style="padding:8px 12px;">{p['label']}</td>
+<td style="padding:8px 12px; text-align:right;">€{p['current_price']:.4f}</td>
+<td style="padding:8px 12px; text-align:right;">€{p['current_value']:,.2f}</td>
+<td style="padding:8px 12px; text-align:right;">€{p['peak_value']:,.2f}</td>
+<td style="padding:8px 12px; text-align:right; color:{dd_color}; font-weight:bold;">{dd:+.1f}%</td>
+<td style="padding:8px 12px; text-align:center;">{status}</td>
+</tr>"""
+        html += f"""<tr style="background:#ECEFF1; font-weight:bold;">
+<td style="padding:8px 12px;" colspan="2">总市值: €{total:,.2f}</td>
+<td style="padding:8px 12px; text-align:right; color:{pnl_color};" colspan="2">盈亏: {pnl:+.1f}%</td>
+<td style="padding:8px 12px;" colspan="2"></td>
+</tr></table>"""
+
+        if grp['signal']['has_signal']:
+            html += f"""<div style="padding:10px; background:#FFEBEE; border-left:4px solid #D32F2F; border-radius:4px; margin-bottom:8px;">
+<strong style="color:#D32F2F;">⚠️ 轮动信号触发！</strong> 运行 <code>python rotation_signal.py -p {grp.get('file','')} --confirm</code></div>"""
+
+    html += f"""<p style="color:#999; font-size:12px; margin-top:20px;">自动生成 | rotation_signal.py | {now}</p></body></html>"""
+    return plain, html
+
+
+def run_single_check(portfolio_path: str, threshold_override: float = None,
+                     manual_prices: dict = None, verbose: bool = True) -> dict:
+    """对单个 portfolio 执行完整检查。
+
+    Returns:
+        {'pf': Portfolio, 'signal': dict, 'stock_prices': dict, 'fx_rate': float,
+         'active': list, 'threshold': float, 'error': str|None}
+    """
+    pf = Portfolio(portfolio_path)
+    if not pf.exists():
+        return {'error': f'{portfolio_path} 不存在', 'pf': None}
+
+    pf.load()
+    threshold = threshold_override if threshold_override is not None else pf.data['threshold']
+    active = pf.get_active_positions()
+    if not active:
+        return {'error': '无活跃仓位', 'pf': pf}
+
+    underlyings = list(set(p['underlying'] for p in active))
+    if verbose:
+        print(f"\n{C['grey']}  下载市场数据...{C['reset']}")
+    stock_prices, fx_rate = fetch_market_data(underlyings)
+    pf.update_prices(stock_prices, fx_rate, manual_prices)
+    signal = pf.check_signals(threshold)
+
+    # 保存待确认信号
+    if signal['has_signal']:
+        pf.data['pending_signal'] = {
+            'has_signal': True,
+            'breached': signal['breached'],
+            'survivors': [p['id'] for p in signal['survivors']],
+            'cash': signal.get('cash', 0),
+            'per_survivor': signal.get('per_survivor', 0),
+            'total_value': signal['total_value'],
+        }
+    else:
+        pf.data['pending_signal'] = None
+
+    pf.data['check_history'].append({
+        'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
+        'total_value': signal['total_value'],
+        'had_signal': signal['has_signal'],
+    })
+    if len(pf.data['check_history']) > 60:
+        pf.data['check_history'] = pf.data['check_history'][-60:]
+    pf.save()
+
+    return {
+        'pf': pf, 'signal': signal, 'stock_prices': stock_prices,
+        'fx_rate': fx_rate, 'active': active, 'threshold': threshold, 'error': None,
+    }
+
+
+def print_single_report(result: dict):
+    """打印单个轮动组的终端报告。"""
+    pf = result['pf']
+    active = result['active']
+    stock_prices = result['stock_prices']
+    fx_rate = result['fx_rate']
+    signal = result['signal']
+    threshold = result['threshold']
+
+    name = pf.data.get('name', os.path.basename(pf.path))
+    print(f"\n{C['bold']}{C['magenta']}  ▸ {name}{C['reset']}")
+    print_header(pf, stock_prices, fx_rate)
+    for p in active:
+        print_position(p, threshold)
+    print_footer(signal, pf)
+    if signal.get('details'):
+        print(signal['details'])
 
 def parse_manual_prices(arg: str) -> Dict[str, float]:
     """解析 --manual 参数。格式: 'NVDA Turbo:5.71,MSFT Turbo:8.30'"""
@@ -658,12 +820,16 @@ def main():
     parser = argparse.ArgumentParser(description='三股轮动持仓信号')
     parser.add_argument('--init', action='store_true', help='首次创建 portfolio.json')
     parser.add_argument('--check', action='store_true', default=False, help='检查价格 + 输出信号 (默认)')
+    parser.add_argument('--check-all', action='store_true', default=False,
+                        help='检查所有轮动组 (portfolio*.json)')
     parser.add_argument('--confirm', action='store_true', help='确认执行本次轮动信号')
     parser.add_argument('--email', action='store_true', help='检查并发送邮件通知')
     parser.add_argument('--manual', type=str, default=None,
                         help='手动输入权证价格 (格式: "标签:价格,标签:价格")')
     parser.add_argument('--threshold', type=float, default=None, help='临时覆盖阈值 (如 --threshold 0.35)')
     parser.add_argument('--reset-peaks', action='store_true', help='重置所有 peak 为当前市值 (Day 1)')
+    parser.add_argument('--portfolio', '-p', type=str, default=None,
+                        help='指定 portfolio 文件路径 (默认: portfolio.json)')
     args = parser.parse_args()
 
     # ── --init ──
@@ -671,92 +837,59 @@ def main():
         interactive_init()
         return
 
-    # ── 检查 portfolio 是否存在 ──
-    pf = Portfolio()
-    if not pf.exists():
-        print(f"\n{C['yellow']}⚠ portfolio.json 不存在。{C['reset']}")
-        print(f"  运行 {C['bold']}python rotation_signal.py --init{C['reset']} 创建持仓。\n")
-        return
-
-    pf.load()
-    threshold = args.threshold if args.threshold is not None else pf.data['threshold']
-
-    # ── --confirm ──
-    if args.confirm:
-        pf.confirm_signal()
-        return
-
-    # ── --reset-peaks ──
-    if args.reset_peaks:
-        for p in pf.data['positions']:
-            if p['active']:
-                p['peak_price'] = p['current_price']
-                p['peak_value'] = p['current_value']
-                print(f"  {C['green']}✓{C['reset']} {p['label']}: peak → EUR {p['current_value']:.2f}")
-        pf.save()
-        print(f"\n{C['green']}✅ 所有 peak 已重置为当前市值 (Day 1)。{C['reset']}\n")
-        return
-
-    # ── 默认 --check（含 --email）──
-    active = pf.get_active_positions()
-    if not active:
-        print(f"\n{C['red']}⚠ 无活跃仓位。所有仓位可能已被卖出。{C['reset']}\n")
-        return
-
-    # 获取市场价格
-    underlyings = list(set(p['underlying'] for p in active))
-    print(f"\n{C['grey']}  下载市场数据...{C['reset']}")
-    stock_prices, fx_rate = fetch_market_data(underlyings)
-
-    # 解析手动价格
-    manual_prices = parse_manual_prices(args.manual) if args.manual else None
-
-    # 更新权证价格
-    pf.update_prices(stock_prices, fx_rate, manual_prices)
-
-    # 检查信号
-    signal = pf.check_signals(threshold)
-
-    # 保存待确认信号
-    if signal['has_signal']:
-        pf.data['pending_signal'] = signal
-        # 清理不需要持久化的字段
-        pf.data['pending_signal'] = {
-            'has_signal': True,
-            'breached': signal['breached'],
-            'survivors': [p['id'] for p in signal['survivors']],
-            'cash': signal.get('cash', 0),
-            'per_survivor': signal.get('per_survivor', 0),
-            'total_value': signal['total_value'],
-        }
+    # ── 确定要操作的 portfolio 文件 ──
+    if args.portfolio:
+        portfolio_files = [args.portfolio]
+    elif args.check_all:
+        portfolio_files = find_all_portfolios()
     else:
-        pf.data['pending_signal'] = None
+        portfolio_files = [PORTFOLIO_PATH]
 
-    # 记录检查历史
-    pf.data['check_history'].append({
-        'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
-        'total_value': signal['total_value'],
-        'had_signal': signal['has_signal'],
-    })
-    # 只保留最近 60 条
-    if len(pf.data['check_history']) > 60:
-        pf.data['check_history'] = pf.data['check_history'][-60:]
+    # ── 对每个 portfolio 执行操作 ──
+    manual_prices = parse_manual_prices(args.manual) if args.manual else None
+    all_results = []
+    all_fx_rates = {}
 
-    pf.save()
+    for pf_path in portfolio_files:
+        pf = Portfolio(pf_path)
 
-    # ── 输出 ──
-    print_header(pf, stock_prices, fx_rate)
-    for p in active:
-        print_position(p, threshold)
-    print_footer(signal, pf)
+        # 检查是否存在
+        if not pf.exists():
+            print(f"\n{C['yellow']}⚠ {pf_path} 不存在，跳过。{C['reset']}")
+            continue
 
-    # 详细信号
-    if signal.get('details'):
-        print(signal['details'])
+        pf.load()
+        grp_name = pf.data.get('name', os.path.basename(pf_path))
+        threshold = args.threshold if args.threshold is not None else pf.data['threshold']
 
-    # ── 邮件 ──
-    if args.email:
-        # 构建邮件数据
+        # ── --confirm ──
+        if args.confirm:
+            pf.confirm_signal()
+            continue
+
+        # ── --reset-peaks ──
+        if args.reset_peaks:
+            for p in pf.data['positions']:
+                if p['active']:
+                    p['peak_price'] = p['current_price']
+                    p['peak_value'] = p['current_value']
+                    print(f"  {C['green']}✓{C['reset']} [{grp_name}] {p['label']}: peak → EUR {p['current_value']:.2f}")
+            pf.save()
+            continue
+
+        # ── 默认 --check ──
+        result = run_single_check(pf_path, threshold, manual_prices,
+                                  verbose=(len(portfolio_files) == 1))
+        if result['error']:
+            print(f"\n{C['red']}⚠ [{grp_name}] {result['error']}{C['reset']}")
+            continue
+
+        all_fx_rates['EUR/USD'] = result['fx_rate']
+        print_single_report(result)
+
+        # 收集邮件数据
+        active = result['active']
+        signal = result['signal']
         pos_data = []
         for p in active:
             dd = (p['current_value'] - p['peak_value']) / p['peak_value'] * 100 if p['peak_value'] > 0 else 0
@@ -766,15 +899,31 @@ def main():
                 'current_value': p['current_value'], 'peak_value': p['peak_value'],
                 'dd_pct': dd, 'breached': breached,
             })
+        all_results.append({
+            'name': grp_name, 'file': pf_path,
+            'positions_data': pos_data, 'signal': signal,
+            'total_invested': pf.data['total_invested'],
+            'threshold': threshold,
+        })
 
-        subject = '⚠️ 轮动信号触发!' if signal['has_signal'] else '📊 每日持仓报告'
-        plain, html = build_email(pos_data, signal, pf, fx_rate)
+    # ── 操作后处理 ──
+    if args.reset_peaks:
+        print(f"\n{C['green']}✅ 所有 peak 已重置为当前市值 (Day 1)。{C['reset']}\n")
+        return
+
+    if args.confirm:
+        return
+
+    if not all_results:
+        return
+
+    # ── 邮件（合并发送）──
+    if args.email and all_results:
+        any_signal = any(r['signal']['has_signal'] for r in all_results)
+        all_names = ', '.join(r['name'] for r in all_results)
+        subject = '⚠️ 轮动信号触发!' if any_signal else f'📊 每日持仓报告 ({all_names})'
+        plain, html = build_combined_email(all_results, all_fx_rates)
         send_email(subject, plain, html)
-    elif not EMAIL_CONFIG['enabled']:
-        pass  # 未配置邮件，静默
-    else:
-        # 邮件已配置但未指定 --email，提示
-        pass
 
 
 if __name__ == '__main__':

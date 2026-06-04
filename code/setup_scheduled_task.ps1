@@ -91,7 +91,7 @@ if ($old) {
 
 # Create new task
 $Action = New-ScheduledTaskAction -Execute $PythonPath `
-    -Argument "`"$ScriptPath`" --check$EmailFlag" `
+    -Argument "`"$ScriptPath`" --check-all$EmailFlag" `
     -WorkingDirectory (Get-Location).Path
 
 $Trigger = New-ScheduledTaskTrigger -Daily -At $Time

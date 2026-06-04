@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created": "2026-06-04",
-  "updated": "2026-06-04 13:23",
+  "updated": "2026-06-04 14:25",
   "threshold": 0.4,
   "total_invested": 1891.16,
   "currency": "EUR",
@@ -87,5 +87,41 @@
   ],
   "pending_signal": null,
   "rotation_history": [],
-  "check_history": []
+  "check_history": [
+    {
+      "date": "2026-06-04 13:45",
+      "total_value": 1649.3899999999999,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 13:46",
+      "total_value": 1649.3899999999999,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 13:50",
+      "total_value": 1649.21,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 14:00",
+      "total_value": 1649.56,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 14:02",
+      "total_value": 1649.56,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 14:24",
+      "total_value": 1649.95,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 14:25",
+      "total_value": 1649.95,
+      "had_signal": false
+    }
+  ]
 }

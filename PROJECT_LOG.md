@@ -1,5 +1,22 @@
 # 项目日志 — stock
 
+## [2026-06-04 14:25] 新增第二组轮动（PLTR+SMCI+TSLA）+ 多组支持
+
+- **输入命令**: "再加一个三只涡轮权证轮动...算上之前的轮动 现在一共是两个轮动 最后发个邮件 把两个轮动"
+- **PROJECT_INDEX 变更**: 新增 `data/portfolio2.json`，修改 `code/rotation_signal.py`、`code/setup_scheduled_task.ps1`
+- **关键发现**:
+  1. 第二组 PLTR+SMCI+TSLA 初始市值 €1,849.80（投入 €1,793，浮盈 +3.2%）
+  2. SMCI 权证兑换比例 1.0（≠ 常见的 0.1），权证价格公式仍然适用
+  3. 两组轮动独立运行，互不干扰（各自 portfolio*.json）
+  4. rotation_signal.py 新增 `--check-all`、`--portfolio`、`-p` 参数，支持多组合并邮件
+  5. 定时任务已更新为 `--check-all --email`，每天 04:30 同时检查两组
+- **生成/修改的文件**:
+  | 文件 | 说明 |
+  |------|------|
+  | `data/portfolio2.json` | 第二组 PLTR+SMCI+TSLA 持仓状态 |
+  | `code/rotation_signal.py` | 新增 --check-all、--portfolio、合并邮件、多组检查 |
+  | `code/setup_scheduled_task.ps1` | --check 改为 --check-all |
+
 ## [2026-06-04 12:30] 真实杠杆产品验证：回测模型 vs 实际 ETP
 
 - **输入命令**: "去网上找杠杆产品的真实数据 比如文件夹C:\AI\cc\stock\input中的Turbo Long列出的产品 验证回测结果的真实性"
