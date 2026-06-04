@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "created": "2026-06-04",
+  "updated": "2026-06-04 13:23",
+  "threshold": 0.4,
+  "total_invested": 1891.16,
+  "currency": "EUR",
+  "positions": [
+    {
+      "id": 0,
+      "label": "NVDA Turbo",
+      "underlying": "NVDA",
+      "product_name": "Morgan Stanley OE Turbo Long NVIDIA",
+      "isin": "",
+      "strike_usd": 176.5395,
+      "ratio": 0.1,
+      "shares": 190.0,
+      "entry_price": 4.132,
+      "entry_date": "2026-06-04",
+      "peak_price": 3.2819,
+      "current_price": 3.2819,
+      "current_value": 623.56,
+      "peak_value": 623.56,
+      "active": true,
+      "transaction_history": [
+        {
+          "date": "2026-06-04",
+          "action": "BUY",
+          "price": 4.132,
+          "shares": 190,
+          "value": 785.08
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "label": "MSFT Turbo",
+      "underlying": "MSFT",
+      "product_name": "UBS OE Turbo Call Warrant Microsoft",
+      "isin": "",
+      "strike_usd": 340.7219,
+      "ratio": 0.1,
+      "shares": 67.0,
+      "entry_price": 7.385,
+      "entry_date": "2026-06-04",
+      "peak_price": 7.4396,
+      "current_price": 7.4396,
+      "current_value": 498.45,
+      "peak_value": 498.45,
+      "active": true,
+      "transaction_history": [
+        {
+          "date": "2026-06-04",
+          "action": "BUY",
+          "price": 7.385,
+          "shares": 67,
+          "value": 494.795
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "label": "ORCL Turbo",
+      "underlying": "ORCL",
+      "product_name": "HSBC OE-Turbo Oracle Call",
+      "isin": "",
+      "strike_usd": 187.3461,
+      "ratio": 0.1,
+      "shares": 143.0,
+      "entry_price": 4.27,
+      "entry_date": "2026-06-04",
+      "peak_price": 3.6919,
+      "current_price": 3.6919,
+      "current_value": 527.94,
+      "peak_value": 527.94,
+      "active": true,
+      "transaction_history": [
+        {
+          "date": "2026-06-04",
+          "action": "BUY",
+          "price": 4.27,
+          "shares": 143,
+          "value": 610.61
+        }
+      ]
+    }
+  ],
+  "pending_signal": null,
+  "rotation_history": [],
+  "check_history": []
+}
