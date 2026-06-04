@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>量化策略回测排行榜 — stock 项目</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --gold: #d2991d;
+    --silver: #a0a0a0;
+    --bronze: #cd7f32;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d2991d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 30px 20px;
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  header h1 { font-size: 2em; color: var(--accent); margin-bottom: 8px; }
+  header p { color: var(--muted); font-size: 0.95em; }
+  .updated { color: var(--muted); font-size: 0.85em; margin-top: 6px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 6px;
+    border: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 10px 18px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.9em;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); background: rgba(88,166,255,0.08); }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+
+  /* Search */
+  .search-box {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .search-box input {
+    flex: 1;
+    min-width: 250px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.95em;
+  }
+  .search-box input:focus { outline: none; border-color: var(--accent); }
+  .search-box .hint { color: var(--muted); font-size: 0.8em; }
+
+  /* Tables */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .table-wrap { overflow-x: auto; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88em;
+    background: var(--surface);
+  }
+  thead { position: sticky; top: 0; z-index: 1; }
+  th {
+    background: #1c2333;
+    color: var(--accent);
+    padding: 12px 10px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th:hover { background: #253040; }
+  th .sort-icon { font-size: 0.7em; margin-left: 4px; opacity: 0.4; }
+  th.sorted .sort-icon { opacity: 1; }
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tr:hover td { background: rgba(88,166,255,0.04); }
+  tr.highlight td { background: rgba(210,153,29,0.08); }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: 600; }
+  .gold   { background: rgba(210,153,29,0.2); color: var(--gold); }
+  .silver { background: rgba(160,160,160,0.2); color: var(--silver); }
+  .bronze { background: rgba(205,127,50,0.2); color: var(--bronze); }
+  .green  { background: rgba(63,185,80,0.15); color: var(--green); }
+  .red    { background: rgba(248,81,73,0.15); color: var(--red); }
+  .blue   { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .orange { background: rgba(210,153,29,0.15); color: var(--orange); }
+
+  .rank-cell { font-weight: 700; text-align: center; }
+  .money { font-family: "SF Mono", "Consolas", monospace; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    flex: 1;
+    min-width: 160px;
+  }
+  .stat-card .label { color: var(--muted); font-size: 0.8em; margin-bottom: 4px; }
+  .stat-card .value { font-size: 1.4em; font-weight: 700; color: var(--accent); }
+  .stat-card .sub { color: var(--muted); font-size: 0.75em; margin-top: 2px; }
+
+  /* Section title */
+  .section-title {
+    font-size: 1.2em;
+    color: var(--text);
+    margin: 24px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title span { color: var(--accent); }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8em;
+    padding: 30px 20px;
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .tabs { gap: 2px; }
+    .tab-btn { padding: 8px 12px; font-size: 0.8em; }
+    header h1 { font-size: 1.3em; }
+    table { font-size: 0.78em; }
+    th, td { padding: 6px 8px; }
+  }
+
+  /* Collapsible notes */
+  .notes {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 0.88em;
+  }
+  .notes h4 { color: var(--accent); margin-bottom: 8px; }
+  .notes ul { padding-left: 20px; color: var(--muted); }
+  .notes ul li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 量化策略回测排行榜</h1>
+  <p>stock 项目 — 三股轮动 · Buy & Hold · DCA定投 · 杠杆换仓 · 全量回测汇总</p>
+  <p class="updated">数据生成：2026-06-04 | 回测周期：2016–2026（十年）| 杠杆默认 3x，每日重置</p>
+</header>
+
+<div class="container">
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="label">三股轮动组合</div>
+    <div class="value">1,330</div>
+    <div class="sub">C(21,3) 全排列</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">覆盖标的</div>
+    <div class="value">23</div>
+    <div class="sub">含 PLTR (6年)</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">DCA 排名标的</div>
+    <div class="value">23</div>
+    <div class="sub">Fixed + DD3M 双轨</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">换仓规则</div>
+    <div class="value">9</div>
+    <div class="sub">铁三角 + 窜天猴</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">回测脚本</div>
+    <div class="value">65</div>
+    <div class="sub">Python</div>
+  </div>
+</div>
+
+<!-- Search -->
+<div class="search-box">
+  <input type="text" id="globalSearch" placeholder="🔍 搜索股票/组合/规则... (例如: NVDA, MU+ORCL+AMD, 40%, DCA, 轮动)" oninput="filterAll()">
+  <span class="hint">支持：股票代码、组合名、阈值%、策略类型、排名关键词</span>
+</div>
+
+<!-- Tabs -->
+<div class="tabs" id="tabBar">
+  <button class="tab-btn active" onclick="switchTab('rotation1330')">🏆 三股轮动 Top10 (1330)</button>
+  <button class="tab-btn" onclick="switchTab('rotation35')">🔥 35组合 高波动</button>
+  <button class="tab-btn" onclick="switchTab('rotationReplace')">🔄 ORCL+MSFT+AMZN 替换</button>
+  <button class="tab-btn" onclick="switchTab('pairRotation')">⚔️ 两股轮动 vs B&H</button>
+  <button class="tab-btn" onclick="switchTab('dcaFixed')">💵 DCA Fixed 排名</button>
+  <button class="tab-btn" onclick="switchTab('dcaDD3M')">📉 DCA Drawdown 3M</button>
+  <button class="tab-btn" onclick="switchTab('dcaCompare')">⚖️ Fixed vs DD3M</button>
+  <button class="tab-btn" onclick="switchTab('rebalance')">🔧 换仓规则排名</button>
+  <button class="tab-btn" onclick="switchTab('stockBH')">📈 单股 B&H 杠杆</button>
+  <button class="tab-btn" onclick="switchTab('rules')">📋 核心规律</button>
+</div>
+
+<!-- ===== TAB 1: 三股轮动 1330 Top10 ===== -->
+<div class="tab-content active" id="tab-rotation1330">
+  <div class="section-title"><span>▎</span> 1330 组合 Top 10（10 年完整数据，不含 PLTR）</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">来源：C(21,3)=1330 · 3x杠杆 · 年度滚动 · 公平对比同杠杆最差 B&H · Score = (轮动−最差BH)/最差BH×100%</p>
+  <div class="table-wrap">
+  <table id="tbl-1330-10y">
+    <thead><tr>
+      <th>排名</th><th>组合</th><th>阈值</th><th class="num">年均$</th><th class="num">十年收益%</th><th>KO</th><th>BW</th><th>BB</th><th class="num">Score</th><th>评级</th>
+    </tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="rank-cell">🥇 1</td><td><strong>MU + ORCL + AMD</strong></td><td>40%</td><td class="num money">$33,610</td><td class="num green">+1,020%</td><td>0/10</td><td>10/10</td><td>7/10</td><td class="num">+2,213%</td><td><span class="badge gold">主力推荐</span></td></tr>
+      <tr><td class="rank-cell">🥈 2</td><td>MU + AMD + LRCX</td><td>20%</td><td class="num money">$90,990</td><td class="num green">+2,933%</td><td>2/10</td><td>8/10</td><td>7/10</td><td class="num">+2,160%</td><td><span class="badge orange">高收益</span></td></tr>
+      <tr><td class="rank-cell">🥉 3</td><td>MU + AMD + MRVL</td><td>20%</td><td class="num money">$60,627</td><td class="num green">+1,921%</td><td>1/10</td><td>9/10</td><td>8/10</td><td class="num">+2,116%</td><td><span class="badge orange">高收益</span></td></tr>
+      <tr><td class="rank-cell">4</td><td>MU + MRVL + NOW</td><td>30%</td><td class="num money">$38,250</td><td class="num green">+1,175%</td><td>1/10</td><td>9/10</td><td>7/10</td><td class="num">+2,106%</td><td></td></tr>
+      <tr><td class="rank-cell">5</td><td>MU + AVGO + MRVL</td><td>30%</td><td class="num money">$39,139</td><td class="num green">+1,205%</td><td>2/10</td><td>8/10</td><td>6/10</td><td class="num">+1,672%</td><td></td></tr>
+      <tr><td class="rank-cell">6</td><td>ORCL + AMD + TSM</td><td>30%</td><td class="num money">$25,432</td><td class="num green">+748%</td><td>0/10</td><td>10/10</td><td>9/10</td><td class="num">+1,650%</td><td><span class="badge green">零KO</span></td></tr>
+      <tr><td class="rank-cell">7</td><td>AMD + MRVL + LRCX</td><td>40%</td><td class="num money">$45,309</td><td class="num green">+1,410%</td><td>0/10</td><td>10/10</td><td>9/10</td><td class="num">+1,556%</td><td><span class="badge green">零KO</span></td></tr>
+      <tr><td class="rank-cell">8</td><td>ORCL + ASML + MRVL</td><td>30%</td><td class="num money">$22,730</td><td class="num green">+658%</td><td>0/10</td><td>10/10</td><td>10/10</td><td class="num">+1,464%</td><td><span class="badge blue">完美BW+BB</span></td></tr>
+      <tr><td class="rank-cell">9</td><td>ASML + MRVL + CRM</td><td>30%</td><td class="num money">$16,837</td><td class="num green">+461%</td><td>0/10</td><td>10/10</td><td>10/10</td><td class="num">+1,461%</td><td><span class="badge blue">完美BW+BB</span></td></tr>
+      <tr><td class="rank-cell">10</td><td>AMD + LRCX + CRM</td><td>50%</td><td class="num money">$16,482</td><td class="num green">+449%</td><td>0/10</td><td>10/10</td><td>9/10</td><td class="num">+1,428%</td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="section-title"><span>▎</span> 1330 组合 Top 10（含 PLTR，6 年数据）</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">⚠️ PLTR 仅 6 年数据（2020 年上市），未经历完整牛熊周期，排名仅供参考</p>
+  <div class="table-wrap">
+  <table id="tbl-1330-6y">
+    <thead><tr>
+      <th>排名</th><th>组合</th><th>阈值</th><th class="num">年均$</th><th class="num">收益%</th><th>KO</th><th>BW</th><th>BB</th><th class="num">Score</th>
+    </tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="rank-cell">🥇 1</td><td><strong>TSLA + PLTR + SMCI</strong></td><td>30%</td><td class="num money">$26,008</td><td class="num green">+767%</td><td>0/6</td><td>6/6</td><td>5/6</td><td class="num">+2,596%</td></tr>
+      <tr><td class="rank-cell">🥈 2</td><td>MU + PLTR + ADBE</td><td>50%</td><td class="num money">$13,457</td><td class="num green">+349%</td><td>0/6</td><td>6/6</td><td>3/6</td><td class="num">+2,307%</td></tr>
+      <tr><td class="rank-cell">🥉 3</td><td>MU + ORCL + AMD</td><td>40%</td><td class="num money">$33,610</td><td class="num green">+1,020%</td><td>0/10</td><td>10/10</td><td>7/10</td><td class="num">+2,213%</td></tr>
+      <tr><td class="rank-cell">4</td><td>MU + AMD + LRCX</td><td>20%</td><td class="num money">$90,990</td><td class="num green">+2,933%</td><td>2/10</td><td>8/10</td><td>7/10</td><td class="num">+2,160%</td></tr>
+      <tr><td class="rank-cell">5</td><td>MU + AMD + MRVL</td><td>20%</td><td class="num money">$60,627</td><td class="num green">+1,921%</td><td>1/10</td><td>9/10</td><td>8/10</td><td class="num">+2,116%</td></tr>
+      <tr><td class="rank-cell">6</td><td>MU + MRVL + NOW</td><td>30%</td><td class="num money">$38,250</td><td class="num green">+1,175%</td><td>1/10</td><td>9/10</td><td>7/10</td><td class="num">+2,106%</td></tr>
+      <tr><td class="rank-cell">7</td><td>PLTR + META + ADBE</td><td>40%</td><td class="num money">$11,940</td><td class="num green">+298%</td><td>1/6</td><td>5/6</td><td>2/6</td><td class="num">+2,036%</td></tr>
+      <tr><td class="rank-cell">8</td><td>AMD + PLTR + ADBE</td><td>30%</td><td class="num money">$11,673</td><td class="num green">+289%</td><td>1/6</td><td>5/6</td><td>3/6</td><td class="num">+1,988%</td></tr>
+      <tr><td class="rank-cell">9</td><td>TSLA + PLTR + ADBE</td><td>30%</td><td class="num money">$10,879</td><td class="num green">+263%</td><td>1/6</td><td>5/6</td><td>4/6</td><td class="num">+1,846%</td></tr>
+      <tr><td class="rank-cell">10</td><td>NVDA + PLTR + ADBE</td><td>30%</td><td class="num money">$10,586</td><td class="num green">+253%</td><td>1/6</td><td>5/6</td><td>3/6</td><td class="num">+1,794%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="notes">
+    <h4>📌 核心洞察</h4>
+    <ul>
+      <li><strong>MU 是最佳锚点</strong>：出现 9/20，极高波动（52%）创造丰富切换机会</li>
+      <li><strong>NVDA 仅出现 1/20</strong>：太强了，死拿比轮动更赚钱——轮动对 NVDA 是"多此一举"</li>
+      <li><strong>MSFT / QCOM 出现 0 次</strong>：波动太低（~28%），没有切换机会，不该放进轮动</li>
+      <li><strong>三股全面碾压两股</strong>：三股 100% BW（打败最差 BH），两股仅 78–90%</li>
+      <li><strong>阈值宁宽勿窄</strong>：40–50% 阈值在趋势牛市中稳如泰山，低阈值频繁换仓反亏钱</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== TAB 2: 35组合高波动 ===== -->
+<div class="tab-content" id="tab-rotation35">
+  <div class="section-title"><span>▎</span> 35 组合 Top 10（7 只高波动股排列组合，含 PLTR）</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">股票池：{NVDA, MU, TSLA, PLTR, AVGO, ASML, AMD} · 3x杠杆 · C(7,3)=35</p>
+  <div class="table-wrap">
+  <table id="tbl-35">
+    <thead><tr>
+      <th>排名</th><th>组合</th><th>阈值</th><th class="num">年均$</th><th class="num">收益%</th><th>KO</th><th>BW</th><th>BB</th><th class="num">Score</th>
+    </tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="rank-cell">🥇 1</td><td><strong>MU + TSLA + PLTR</strong></td><td>50%</td><td class="num money">$18,160</td><td class="num green">+505%</td><td>0/6</td><td>6/6</td><td>4/6</td><td class="num">+1,783%</td></tr>
+      <tr><td class="rank-cell">🥈 2</td><td>TSLA + PLTR + AMD</td><td>35%</td><td class="num money">$16,229</td><td class="num green">+441%</td><td>1/6</td><td>5/6</td><td>4/6</td><td class="num">+1,582%</td></tr>
+      <tr><td class="rank-cell">🥉 3</td><td>TSLA + PLTR + ASML</td><td>35%</td><td class="num money">$15,980</td><td class="num green">+433%</td><td>1/6</td><td>5/6</td><td>4/6</td><td class="num">+1,557%</td></tr>
+      <tr><td class="rank-cell">4</td><td>NVDA + TSLA + PLTR</td><td>50%</td><td class="num money">$15,648</td><td class="num green">+422%</td><td>0/6</td><td>6/6</td><td>5/6</td><td class="num">+1,522%</td></tr>
+      <tr><td class="rank-cell">5</td><td>MU + ASML + AMD</td><td>25%</td><td class="num money">$34,728</td><td class="num green">+1,058%</td><td>1/10</td><td>9/10</td><td>7/10</td><td class="num">+1,347%</td></tr>
+      <tr><td class="rank-cell">6</td><td>TSLA + PLTR + AVGO</td><td>20%</td><td class="num money">$13,386</td><td class="num green">+346%</td><td>0/6</td><td>6/6</td><td>5/6</td><td class="num">+1,288%</td></tr>
+      <tr><td class="rank-cell">7</td><td>MU + PLTR + ASML</td><td>15%</td><td class="num money">$32,489</td><td class="num green">+983%</td><td>0/6</td><td>6/6</td><td>3/6</td><td class="num">+1,237%</td></tr>
+      <tr><td class="rank-cell">8</td><td>MU + AVGO + ASML</td><td>25%</td><td class="num money">$29,112</td><td class="num green">+870%</td><td>0/10</td><td>10/10</td><td>7/10</td><td class="num">+1,218%</td></tr>
+      <tr><td class="rank-cell">9</td><td>PLTR + ASML + AMD</td><td>35%</td><td class="num money">$31,444</td><td class="num green">+948%</td><td>1/6</td><td>5/6</td><td>4/6</td><td class="num">+1,194%</td></tr>
+      <tr><td class="rank-cell">10</td><td>MU + AVGO + AMD</td><td>25%</td><td class="num money">$28,229</td><td class="num green">+841%</td><td>1/10</td><td>9/10</td><td>7/10</td><td class="num">+1,178%</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ===== TAB 3: ORCL+MSFT+AMZN 替换排名 ===== -->
+<div class="tab-content" id="tab-rotationReplace">
+  <div class="section-title"><span>▎</span> ORCL+MSFT+AMZN 优化：最佳替换方案</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">基准：ORCL+MSFT+AMZN 3x/50% → 年均$5,350 (+78.3%), 10/10 BW, 10/10 BB, 0 KO</p>
+  <div class="table-wrap">
+  <table id="tbl-replace">
+    <thead><tr>
+      <th>排名</th><th>策略</th><th>最佳组合</th><th class="num">年均$</th><th class="num">收益%</th><th class="num">提升幅度</th><th>BW</th><th>BB</th>
+    </tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="rank-cell">🥇 1</td><td>替换 MSFT+AMZN</td><td><strong>MU + ORCL + AMD</strong></td><td class="num money">$33,610</td><td class="num green">+1,020%</td><td class="num green"><strong>+528%</strong></td><td>10/10</td><td>7/10</td></tr>
+      <tr><td class="rank-cell">🥈 2</td><td>替换 ORCL+AMZN</td><td>AMD + ORCL + TSM</td><td class="num money">$25,432</td><td class="num green">+748%</td><td class="num green">+375%</td><td>10/10</td><td>9/10</td></tr>
+      <tr><td class="rank-cell">🥉 3</td><td>替换 ORCL+MSFT</td><td>MU + AVGO + ORCL</td><td class="num money">$24,705</td><td class="num green">+724%</td><td class="num green">+362%</td><td>10/10</td><td>7/10</td></tr>
+      <tr><td class="rank-cell">4</td><td>换掉 AMZN 一个</td><td>MSFT + ORCL + PLTR</td><td class="num money">$12,050</td><td class="num green">+302%</td><td class="num green">+125%</td><td>6/6</td><td>5/6</td></tr>
+      <tr><td class="rank-cell">5</td><td>换掉 MSFT 一个</td><td>AMZN + ORCL + PLTR</td><td class="num money">$11,553</td><td class="num green">+285%</td><td class="num green">+116%</td><td>6/6</td><td>4/6</td></tr>
+      <tr><td class="rank-cell">6</td><td>换掉 ORCL 一个</td><td>AMZN + MSFT + PLTR</td><td class="num money">$8,624</td><td class="num green">+188%</td><td class="num green">+61%</td><td>6/6</td><td>5/6</td></tr>
+      <tr style="opacity:0.5"><td class="rank-cell">—</td><td>不动（基准）</td><td>ORCL + MSFT + AMZN</td><td class="num money">$5,350</td><td class="num">+78%</td><td class="num">—</td><td>10/10</td><td>10/10</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="notes">
+    <h4>📌 结论</h4>
+    <ul>
+      <li>MSFT 和 AMZN 波动太低（~28–32%），是拖后腿的元凶</li>
+      <li>换成高波动标的（MU、AMD）效果立竿见影，收益提升 5–6 倍</li>
+      <li>仅换掉 1 只（换入 PLTR）也能把收益从 +78% 拉升到 +188–302%</li>
+      <li>但 ORCL+MSFT+AMZN 本身是唯一实现 <strong>10/10 BW + 10/10 BB</strong> 完美战绩的组合</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== TAB 4: 两股轮动 vs B&H ===== -->
+<div class="tab-content" id="tab-pairRotation">
+  <div class="section-title"><span>▎</span> 两股轮动 vs 同杠杆 B&H（公平对比）</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">3x杠杆 · 阈值扫描最优 · BW=轮动>最差BH（避坑率）· BB=轮动>最好BH（超额率）</p>
+  <div class="table-wrap">
+  <table id="tbl-pair">
+    <thead><tr>
+      <th>排名</th><th>组合</th><th>Rot KO</th><th>BW (避坑)</th><th>BB (超额)</th><th>结论</th>
+    </tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="rank-cell">🥇 1</td><td><strong>NVDA + GOOGL</strong></td><td>0/10</td><td><span class="badge green">9/10 (90%)</span></td><td>3/10</td><td><span class="badge green">★ 轮动有效</span></td></tr>
+      <tr><td class="rank-cell">🥈 2</td><td>NVDA + AMZN</td><td>0/10</td><td><span class="badge green">8/10 (80%)</span></td><td>4/10</td><td><span class="badge green">★ 轮动有效</span></td></tr>
+      <tr><td class="rank-cell">🥉 3</td><td>NVDA + MU</td><td>1/10</td><td><span class="badge green">7/9 (78%)</span></td><td>4/9</td><td><span class="badge green">★ 轮动有效</span></td></tr>
+      <tr><td class="rank-cell">4</td><td>MU + GOOGL</td><td>0/10</td><td><span class="badge orange">6/10 (60%)</span></td><td>1/10</td><td><span class="badge orange">△ 边际</span></td></tr>
+      <tr><td class="rank-cell">5</td><td>MU + AMZN</td><td>0/10</td><td><span class="badge orange">6/10 (60%)</span></td><td>1/10</td><td><span class="badge orange">△ 边际</span></td></tr>
+      <tr><td class="rank-cell">6</td><td>GOOGL + AMZN</td><td>0/10</td><td><span class="badge red">3/10 (30%)</span></td><td>1/10</td><td><span class="badge red">✗ 无效</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="notes">
+    <h4>💡 两股 vs 三股对比</h4>
+    <ul>
+      <li>两股最好只能 90% BW（避坑率），三股能做到 <strong>100% BW</strong></li>
+      <li>两股有"换错"风险——卖出资金只能去一个方向</li>
+      <li>三股卖出平分到两只幸存者 → 容错率翻倍</li>
+      <li><strong>GOOGL + AMZN 完全不适合轮动</strong>：两只低波动股，退化为持仓不动</li>
+    </ul>
+  </div>
+
+  <div class="section-title"><span>▎</span> ORCL+MSFT+AMZN 各杠杆表现</div>
+  <div class="table-wrap">
+  <table id="tbl-leverage-scan">
+    <thead><tr>
+      <th>杠杆</th><th>最佳阈值</th><th class="num">轮动年均$</th><th class="num">轮动年均%</th><th class="num">BH ORCL%</th><th class="num">BH MSFT%</th><th class="num">BH AMZN%</th><th>BW</th><th>BB</th><th>KO</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>1x</td><td>20%</td><td class="num money">$3,870</td><td class="num">+29.0%</td><td class="num">+23.7%</td><td class="num">+26.6%</td><td class="num">+24.5%</td><td>10/10</td><td>10/10</td><td>0</td></tr>
+      <tr><td>2x</td><td>30%</td><td class="num money">$4,793</td><td class="num">+59.8%</td><td class="num">+39.6%</td><td class="num">+50.9%</td><td class="num">+46.4%</td><td>10/10</td><td>10/10</td><td>0</td></tr>
+      <tr class="highlight"><td><strong>3x</strong></td><td><strong>50%</strong></td><td class="num money"><strong>$5,350</strong></td><td class="num green"><strong>+78.3%</strong></td><td class="num">+45.3%</td><td class="num">+68.9%</td><td class="num">+64.5%</td><td><strong>10/10</strong></td><td><strong>10/10</strong></td><td>0</td></tr>
+      <tr><td>4x</td><td>35%</td><td class="num money">$6,133</td><td class="num">+104.4%</td><td class="num">+43.1%</td><td class="num">+78.2%</td><td class="num">+77.8%</td><td>10/10</td><td>8/10</td><td>0</td></tr>
+      <tr><td>5x</td><td>15%</td><td class="num money">$5,548</td><td class="num">+84.9%</td><td class="num">+48.9%</td><td class="num">+78.8%</td><td class="num">+129.6%</td><td>9/9</td><td>8/9</td><td>1</td></tr>
+      <tr><td>6x</td><td>50%</td><td class="num money">$6,530</td><td class="num">+117.7%</td><td class="num">+42.4%</td><td class="num">+73.2%</td><td class="num">+133.5%</td><td>10/10</td><td>7/10</td><td>0</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ===== TAB 5: DCA Fixed 排名 ===== -->
+<div class="tab-content" id="tab-dcaFixed">
+  <div class="section-title"><span>▎</span> DCA Fixed $1000 定投排名（2016-01 ~ 2026-06）</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">每月 $1000，约 126 期 · 现金储备机制 · 综合分 = 年化% × Sharpe 加权</p>
+  <div class="table-wrap">
+  <table id="tbl-dca-fixed">
+    <thead><tr>
+      <th>排名</th><th>标的</th><th class="num">最终市值</th><th class="num">总投入</th><th class="num">年化%</th><th class="num">最大回撤</th><th class="num">Sharpe</th><th class="num">综合分</th><th>时间</th>
+    </tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="rank-cell">🥇 1</td><td><strong>NVDA</strong></td><td class="num money">$5,145,853</td><td class="num">$126,000</td><td class="num green">+42.8%</td><td class="num red">-59.2%</td><td class="num">1.66</td><td class="num">+47.6</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">🥈 2</td><td>AMD</td><td class="num money">$3,057,289</td><td class="num">$126,000</td><td class="num green">+35.9%</td><td class="num red">-59.5%</td><td class="num">1.42</td><td class="num">+38.1</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">🥉 3</td><td>MU</td><td class="num money">$3,012,006</td><td class="num">$126,000</td><td class="num green">+35.7%</td><td class="num red">-42.5%</td><td class="num">1.52</td><td class="num">+42.3</td><td>2016-01~2026-06</td></tr>
+      <tr class="highlight"><td class="rank-cell">⭐ 4</td><td><strong>AVGO</strong></td><td class="num money">$1,883,098</td><td class="num">$126,000</td><td class="num green">+29.7%</td><td class="num red">-26.8%</td><td class="num">1.73</td><td class="num">+41.6</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">⭐ 5</td><td>LRCX</td><td class="num money">$1,705,676</td><td class="num">$126,000</td><td class="num green">+28.4%</td><td class="num red">-43.7%</td><td class="num">1.60</td><td class="num">+35.8</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">6</td><td>SMCI</td><td class="num money">$1,596,603</td><td class="num">$126,000</td><td class="num green">+27.6%</td><td class="num red">-77.9%</td><td class="num">1.17</td><td class="num">+23.8</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">7</td><td>TSLA</td><td class="num money">$1,324,109</td><td class="num">$126,000</td><td class="num green">+25.4%</td><td class="num red">-72.7%</td><td class="num">1.26</td><td class="num">+23.5</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">8</td><td>TSM</td><td class="num money">$1,065,882</td><td class="num">$126,000</td><td class="num green">+22.8%</td><td class="num red">-48.5%</td><td class="num">1.59</td><td class="num">+29.0</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">9</td><td>MRVL</td><td class="num money">$1,017,762</td><td class="num">$126,000</td><td class="num green">+22.2%</td><td class="num red">-57.0%</td><td class="num">1.38</td><td class="num">+24.6</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">10</td><td>ASML</td><td class="num money">$796,024</td><td class="num">$126,000</td><td class="num green">+19.4%</td><td class="num red">-45.3%</td><td class="num">1.49</td><td class="num">+25.2</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">11</td><td>GOOGL</td><td class="num money">$617,703</td><td class="num">$126,000</td><td class="num green">+16.5%</td><td class="num red">-33.3%</td><td class="num">1.59</td><td class="num">+25.7</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">12</td><td>GOOG</td><td class="num money">$616,490</td><td class="num">$126,000</td><td class="num green">+16.5%</td><td class="num red">-33.4%</td><td class="num">1.59</td><td class="num">+25.7</td><td>2016-01~2026-06</td></tr>
+      <tr class="highlight"><td class="rank-cell">13</td><td><strong>PLTR</strong> ⚠️</td><td class="num money">$599,910</td><td class="num">$70,000</td><td class="num green">+46.1%</td><td class="num red">-46.3%</td><td class="num">1.45</td><td class="num">+51.3</td><td>2020-09~2026-06</td></tr>
+      <tr><td class="rank-cell">14</td><td>ORCL</td><td class="num money">$513,786</td><td class="num">$126,000</td><td class="num green">+14.5%</td><td class="num red">-48.7%</td><td class="num">1.46</td><td class="num">+19.3</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">15</td><td>MSFT</td><td class="num money">$431,987</td><td class="num">$126,000</td><td class="num green">+12.6%</td><td class="num red">-28.1%</td><td class="num">1.58</td><td class="num">+22.8</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">16</td><td>QCOM</td><td class="num money">$372,906</td><td class="num">$126,000</td><td class="num green">+11.0%</td><td class="num red">-36.6%</td><td class="num">1.29</td><td class="num">+16.6</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">17</td><td>NFLX</td><td class="num money">$370,841</td><td class="num">$126,000</td><td class="num green">+10.9%</td><td class="num red">-71.4%</td><td class="num">1.35</td><td class="num">+10.2</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">18</td><td>NOW</td><td class="num money">$370,484</td><td class="num">$126,000</td><td class="num green">+10.9%</td><td class="num red">-55.0%</td><td class="num">1.43</td><td class="num">+14.2</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">19</td><td>AMZN</td><td class="num money">$366,996</td><td class="num">$126,000</td><td class="num green">+10.8%</td><td class="num red">-45.1%</td><td class="num">1.44</td><td class="num">+16.2</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">20</td><td>META</td><td class="num money">$354,469</td><td class="num">$126,000</td><td class="num green">+10.5%</td><td class="num red">-70.7%</td><td class="num">1.31</td><td class="num">+9.4</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">21</td><td>SPY</td><td class="num money">$306,199</td><td class="num">$126,000</td><td class="num green">+8.9%</td><td class="num red">-20.9%</td><td class="num">1.57</td><td class="num">+20.5</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">22</td><td>CRM</td><td class="num money">$175,459</td><td class="num">$126,000</td><td class="num green">+3.2%</td><td class="num red">-49.4%</td><td class="num">1.26</td><td class="num">+6.0</td><td>2016-01~2026-06</td></tr>
+      <tr><td class="rank-cell">23</td><td>ADBE</td><td class="num money">$135,271</td><td class="num">$126,000</td><td class="num green">+0.7%</td><td class="num red">-55.5%</td><td class="num">1.20</td><td class="num">+1.5</td><td>2016-01~2026-06</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ===== TAB 6: DCA Drawdown 3M ===== -->
+<div class="tab-content" id="tab-dcaDD3M">
+  <div class="section-title"><span>▎</span> DCA Drawdown 3M 定投排名（暴跌加仓：-10%→$1500, 新高附近→$500）</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">动态调节月供：正常$1000 · 高位减半$500 · 暴跌加倍$1500</p>
+  <div class="table-wrap">
+  <table id="tbl-dca-dd3m">
+    <thead><tr>
+      <th>排名</th><th>标的</th><th class="num">最终市值</th><th class="num">总投入</th><th class="num">年化%</th><th class="num">最大回撤</th><th class="num">Sharpe</th><th class="num">综合分</th><th class="num">vs Fixed</th>
+    </tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="rank-cell">🥇 1</td><td><strong>NVDA</strong></td><td class="num money">$3,967,664</td><td class="num">$110,050</td><td class="num green">+41.1%</td><td class="num red">-58.3%</td><td class="num">1.27</td><td class="num">+42.2</td><td class="num red">-22.9%</td></tr>
+      <tr><td class="rank-cell">🥈 2</td><td>MU</td><td class="num money">$2,845,601</td><td class="num">$121,450</td><td class="num green">+35.4%</td><td class="num red">-40.8%</td><td class="num">1.12</td><td class="num">+38.4</td><td class="num red">-5.5%</td></tr>
+      <tr><td class="rank-cell">🥉 3</td><td>AMD</td><td class="num money">$2,800,542</td><td class="num">$125,000</td><td class="num green">+34.8%</td><td class="num red">-58.9%</td><td class="num">1.11</td><td class="num">+34.2</td><td class="num red">-8.4%</td></tr>
+      <tr><td class="rank-cell">⭐ 4</td><td>AVGO</td><td class="num money">$1,672,859</td><td class="num">$111,150</td><td class="num green">+29.8%</td><td class="num red">-26.7%</td><td class="num">1.26</td><td class="num">+37.1</td><td class="num red">-11.2%</td></tr>
+      <tr><td class="rank-cell">5</td><td>SMCI</td><td class="num money">$1,546,435</td><td class="num">$125,500</td><td class="num green">+27.3%</td><td class="num red">-77.8%</td><td class="num">1.24</td><td class="num">+24.2</td><td class="num red">-3.1%</td></tr>
+      <tr><td class="rank-cell">6</td><td>LRCX</td><td class="num money">$1,451,577</td><td class="num">$113,450</td><td class="num green">+27.8%</td><td class="num red">-42.6%</td><td class="num">1.15</td><td class="num">+30.8</td><td class="num red">-14.9%</td></tr>
+      <tr><td class="rank-cell">7</td><td>TSLA</td><td class="num money">$1,286,664</td><td class="num">$125,500</td><td class="num green">+25.1%</td><td class="num red">-72.5%</td><td class="num">1.02</td><td class="num">+20.7</td><td class="num red">-2.8%</td></tr>
+      <tr><td class="rank-cell">8</td><td>MRVL</td><td class="num money">$901,932</td><td class="num">$118,100</td><td class="num green">+21.6%</td><td class="num red">-55.1%</td><td class="num">1.48</td><td class="num">+25.3</td><td class="num red">-11.4%</td></tr>
+      <tr><td class="rank-cell">9</td><td>TSM</td><td class="num money">$897,022</td><td class="num">$108,950</td><td class="num green">+22.5%</td><td class="num red">-46.1%</td><td class="num">1.66</td><td class="num">+29.9</td><td class="num red">-15.8%</td></tr>
+      <tr><td class="rank-cell">10</td><td>ASML</td><td class="num money">$667,837</td><td class="num">$112,350</td><td class="num green">+18.7%</td><td class="num red">-43.3%</td><td class="num">1.57</td><td class="num">+25.7</td><td class="num red">-16.1%</td></tr>
+      <tr class="highlight"><td class="rank-cell">11</td><td><strong>PLTR</strong> ⚠️</td><td class="num money">$572,144</td><td class="num">$64,100</td><td class="num green">+47.1%</td><td class="num red">-38.8%</td><td class="num">1.58</td><td class="num">+55.1</td><td class="num red">-4.6%</td></tr>
+      <tr><td class="rank-cell">12</td><td>GOOGL</td><td class="num money">$532,201</td><td class="num">$108,150</td><td class="num green">+16.5%</td><td class="num red">-30.7%</td><td class="num">1.49</td><td class="num">+25.3</td><td class="num red">-13.8%</td></tr>
+      <tr><td class="rank-cell">13</td><td>GOOG</td><td class="num money">$527,945</td><td class="num">$107,550</td><td class="num green">+16.5%</td><td class="num red">-30.9%</td><td class="num">1.49</td><td class="num">+25.2</td><td class="num red">-14.4%</td></tr>
+      <tr><td class="rank-cell">14</td><td>ORCL</td><td class="num money">$437,438</td><td class="num">$110,700</td><td class="num green">+14.1%</td><td class="num red">-48.0%</td><td class="num">1.54</td><td class="num">+19.9</td><td class="num red">-14.9%</td></tr>
+      <tr><td class="rank-cell">15</td><td>QCOM</td><td class="num money">$373,706</td><td class="num">$124,150</td><td class="num green">+11.2%</td><td class="num red">-35.3%</td><td class="num">0.99</td><td class="num">+14.0</td><td class="num green">+0.2%</td></tr>
+      <tr><td class="rank-cell">16</td><td>NFLX</td><td class="num money">$337,520</td><td class="num">$116,000</td><td class="num green">+10.8%</td><td class="num red">-69.9%</td><td class="num">0.90</td><td class="num">+5.8</td><td class="num red">-9.0%</td></tr>
+      <tr><td class="rank-cell">17</td><td>META</td><td class="num money">$336,133</td><td class="num">$118,700</td><td class="num green">+10.5%</td><td class="num red">-67.7%</td><td class="num">1.33</td><td class="num">+10.3</td><td class="num red">-5.2%</td></tr>
+      <tr><td class="rank-cell">18</td><td>MSFT</td><td class="num money">$327,004</td><td class="num">$104,250</td><td class="num green">+11.6%</td><td class="num red">-26.8%</td><td class="num">1.43</td><td class="num">+20.6</td><td class="num red">-24.3%</td></tr>
+      <tr><td class="rank-cell">19</td><td>AMZN</td><td class="num money">$322,958</td><td class="num">$114,850</td><td class="num green">+10.4%</td><td class="num red">-41.9%</td><td class="num">0.98</td><td class="num">+11.9</td><td class="num red">-12.0%</td></tr>
+      <tr><td class="rank-cell">20</td><td>NOW</td><td class="num money">$322,573</td><td class="num">$113,750</td><td class="num green">+10.5%</td><td class="num red">-54.2%</td><td class="num">0.91</td><td class="num">+8.8</td><td class="num red">-12.9%</td></tr>
+      <tr><td class="rank-cell">21</td><td>SPY</td><td class="num money">$224,039</td><td class="num">$92,500</td><td class="num green">+8.9%</td><td class="num red">-18.3%</td><td class="num">1.02</td><td class="num">+15.4</td><td class="num red">-26.8%</td></tr>
+      <tr><td class="rank-cell">22</td><td>CRM</td><td class="num money">$167,225</td><td class="num">$122,550</td><td class="num green">+3.0%</td><td class="num red">-45.7%</td><td class="num">0.81</td><td class="num">+2.0</td><td class="num red">-4.7%</td></tr>
+      <tr><td class="rank-cell">23</td><td>ADBE</td><td class="num money">$123,668</td><td class="num">$123,850</td><td class="num">-0.0%</td><td class="num red">-52.0%</td><td class="num">0.92</td><td class="num">-1.2</td><td class="num red">-8.6%</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ===== TAB 7: Fixed vs DD3M 对比 ===== -->
+<div class="tab-content" id="tab-dcaCompare">
+  <div class="section-title"><span>▎</span> Fixed vs Drawdown 3M：谁从暴跌加仓中获益？</div>
+  <div class="table-wrap">
+  <table id="tbl-dca-compare">
+    <thead><tr>
+      <th>标的</th><th class="num">Fixed 终值</th><th class="num">DD3M 终值</th><th class="num">差异</th><th>结论</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>NVDA</td><td class="num money">$5,145,853</td><td class="num money">$3,967,664</td><td class="num red">-22.9%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>AMD</td><td class="num money">$3,057,289</td><td class="num money">$2,800,542</td><td class="num red">-8.4%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+      <tr><td>MU</td><td class="num money">$3,012,006</td><td class="num money">$2,845,601</td><td class="num red">-5.5%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+      <tr><td>AVGO</td><td class="num money">$1,883,098</td><td class="num money">$1,672,859</td><td class="num red">-11.2%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>LRCX</td><td class="num money">$1,705,676</td><td class="num money">$1,451,577</td><td class="num red">-14.9%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>SMCI</td><td class="num money">$1,596,603</td><td class="num money">$1,546,435</td><td class="num red">-3.1%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+      <tr><td>TSLA</td><td class="num money">$1,324,109</td><td class="num money">$1,286,664</td><td class="num red">-2.8%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+      <tr><td>TSM</td><td class="num money">$1,065,882</td><td class="num money">$897,022</td><td class="num red">-15.8%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>MRVL</td><td class="num money">$1,017,762</td><td class="num money">$901,932</td><td class="num red">-11.4%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>ASML</td><td class="num money">$796,024</td><td class="num money">$667,837</td><td class="num red">-16.1%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>GOOGL</td><td class="num money">$617,703</td><td class="num money">$532,201</td><td class="num red">-13.8%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>GOOG</td><td class="num money">$616,490</td><td class="num money">$527,945</td><td class="num red">-14.4%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>PLTR</td><td class="num money">$599,910</td><td class="num money">$572,144</td><td class="num red">-4.6%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+      <tr><td>ORCL</td><td class="num money">$513,786</td><td class="num money">$437,438</td><td class="num red">-14.9%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>MSFT</td><td class="num money">$431,987</td><td class="num money">$327,004</td><td class="num red">-24.3%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>QCOM</td><td class="num money">$372,906</td><td class="num money">$373,706</td><td class="num green">+0.2%</td><td><span class="badge green">≈ 基本持平</span></td></tr>
+      <tr><td>NFLX</td><td class="num money">$370,841</td><td class="num money">$337,520</td><td class="num red">-9.0%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+      <tr><td>NOW</td><td class="num money">$370,484</td><td class="num money">$322,573</td><td class="num red">-12.9%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>AMZN</td><td class="num money">$366,996</td><td class="num money">$322,958</td><td class="num red">-12.0%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>META</td><td class="num money">$354,469</td><td class="num money">$336,133</td><td class="num red">-5.2%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+      <tr><td>SPY</td><td class="num money">$306,199</td><td class="num money">$224,039</td><td class="num red">-26.8%</td><td><span class="badge red">❌ DD3M更差</span></td></tr>
+      <tr><td>CRM</td><td class="num money">$175,459</td><td class="num money">$167,225</td><td class="num red">-4.7%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+      <tr><td>ADBE</td><td class="num money">$135,271</td><td class="num money">$123,668</td><td class="num red">-8.6%</td><td><span class="badge orange">△ 差不多</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="notes">
+    <h4>💡 核心结论</h4>
+    <ul>
+      <li><strong>获益标的：0/23</strong> — 没有任何一只股票从 DD3M 中获益 >0.5%</li>
+      <li><strong>Fixed $1000 对所有标的都是最优/近优策略</strong></li>
+      <li>暴跌加仓（DD3M）的致命缺陷：在强趋势牛市中「存弹药踏空」</li>
+      <li>唯一接近持平的是 QCOM（+0.2%）——因为它涨得太差，加仓和不加仓差不多</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== TAB 8: 换仓规则排名 ===== -->
+<div class="tab-content" id="tab-rebalance">
+  <div class="section-title"><span>▎</span> 换仓规则排名 — 铁三角 (NVDA+MSFT+ORCL) · 窜天猴 (PLTR+SMCI+TSLA)</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">10年回测 · ~5x初始杠杆 · 1%换仓成本 · 40%轮动阈值 · 公平对比同杠杆B&H</p>
+  <div class="table-wrap">
+  <table id="tbl-rebalance">
+    <thead><tr>
+      <th>排名</th><th>换仓规则</th><th class="num">铁三角<br>轮动收益</th><th class="num">铁三角<br>KO率</th><th class="num">窜天猴<br>轮动收益</th><th class="num">窜天猴<br>KO率</th><th>推荐</th>
+    </tr></thead>
+    <tbody>
+      <tr><td class="rank-cell">1</td><td>永不换仓</td><td class="num green">+148%</td><td class="num green">0/10 ✅</td><td class="num green">+141%</td><td class="num orange">2/6</td><td><span class="badge orange">铁三角推荐</span></td></tr>
+      <tr><td class="rank-cell">2</td><td>每年换</td><td class="num green">+147%</td><td class="num green">0/10 ✅</td><td class="num green">+142%</td><td class="num orange">2/6</td><td></td></tr>
+      <tr class="highlight"><td class="rank-cell">3</td><td><strong>杠杆 &lt; 3x 换</strong></td><td class="num green"><strong>+353%</strong></td><td class="num orange">4/10</td><td class="num red">ALL KO</td><td class="num red">6/6 ❌</td><td><span class="badge gold">铁三角最优</span></td></tr>
+      <tr class="highlight"><td class="rank-cell">4</td><td><strong>涨 &gt; 70% 换</strong></td><td class="num green">+125%</td><td class="num green">0/10 ✅</td><td class="num green"><strong>+290%</strong></td><td class="num orange">3/6</td><td><span class="badge gold">窜天猴最优</span></td></tr>
+      <tr><td class="rank-cell">5</td><td>杠杆 &lt; 2x 换</td><td class="num green">+97%</td><td class="num green">0/10 ✅</td><td class="num green">+229%</td><td class="num orange">4/6</td><td></td></tr>
+      <tr><td class="rank-cell">6</td><td>涨 &gt; 30% 换</td><td class="num green">+185%</td><td class="num orange">3/10</td><td class="num red">ALL KO</td><td class="num red">6/6 ❌</td><td></td></tr>
+      <tr><td class="rank-cell">7</td><td>每半年换</td><td class="num green">+136%</td><td class="num orange">3/10</td><td class="num red">-100%</td><td class="num red">5/6 ❌</td><td></td></tr>
+      <tr><td class="rank-cell">8</td><td>杠杆 &lt; 4x 换</td><td class="num green">+638%</td><td class="num red">5/10 ❌</td><td class="num red">ALL KO</td><td class="num red">6/6 ❌</td><td></td></tr>
+      <tr><td class="rank-cell">9</td><td>涨 &gt; 50% 换</td><td class="num green">+138%</td><td class="num orange">2/10</td><td class="num green">+14%</td><td class="num red">5/6 ❌</td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="notes">
+    <h4>📌 分组换仓策略</h4>
+    <ul>
+      <li><strong>铁三角（NVDA+MSFT+ORCL）</strong>：杠杆 &lt; 3x 时换仓 → +353%（vs 永不换 +148%）——代价是 4/10 年份有 KO</li>
+      <li><strong>窜天猴（PLTR+SMCI+TSLA）</strong>：涨 &gt; 70% 换仓 → +290%（vs 永不换 +141%）——其他规则几乎全 KO</li>
+      <li>窜天猴波动极大，换仓太频繁 = 新高 KO 被回调打穿 = 必死</li>
+      <li>窜天猴的本质是「平时低杠杆保命，偶尔换仓续命」</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== TAB 9: 单股 B&H 杠杆 ===== -->
+<div class="tab-content" id="tab-stockBH">
+  <div class="section-title"><span>▎</span> 关键股票 Kelly 最优杠杆 vs 实际最优</div>
+  <p style="color:var(--muted);margin-bottom:12px;font-size:0.85em;">Kelly 公式 L* = μ/σ² · 回测10年，每日重置杠杆 · 10x = 10倍杠杆B&H结果</p>
+  <div class="table-wrap">
+  <table id="tbl-kelly">
+    <thead><tr>
+      <th>股票</th><th class="num">年化 μ</th><th class="num">年化 σ</th><th class="num">Kelly L*</th><th class="num">实际最优</th><th>10x 结果</th><th>说明</th>
+    </tr></thead>
+    <tbody>
+      <tr class="highlight"><td><strong>NVDA</strong></td><td class="num green">79%</td><td class="num">48%</td><td class="num">3.4x</td><td class="num"><strong>2.5x</strong></td><td>KO (2022-06)</td><td>理论最优最高但实操需下调</td></tr>
+      <tr><td>MU</td><td class="num green">35%</td><td class="num">52%</td><td class="num">1.3x</td><td class="num">2.0x</td><td>KO (2025-04)</td><td>极高波动拖累杠杆效率</td></tr>
+      <tr><td>GOOGL</td><td class="num green">28%</td><td class="num">28%</td><td class="num">3.6x</td><td class="num">3.0x</td><td>KO (2022-10)</td><td>低波动高Kelly，最适合加杠杆</td></tr>
+      <tr><td>AMZN</td><td class="num green">31%</td><td class="num">32%</td><td class="num">3.0x</td><td class="num">2.5x</td><td>KO (2022-12)</td><td>中规中矩</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="notes">
+    <h4>⚠️ 关键发现</h4>
+    <ul>
+      <li>理论 Kelly 值比实际最优高出 0.5–2.3x ——实操中必须下调杠杆</li>
+      <li>Kelly 假设连续复利，真实世界有隔夜跳空、流动性冲击和尾部风险</li>
+      <li>所有股票 10x 杠杆在 10 年内都 KO 了 —— 10x 是必死之路</li>
+      <li><strong>3x 是三股轮动的最优杠杆，零 KO</strong></li>
+    </ul>
+  </div>
+
+  <div class="section-title"><span>▎</span> 单股 3x B&H 十年表现（铁三角 + 窜天猴成分股，lever &lt; 4x 回测数据）</div>
+  <div class="table-wrap">
+  <table id="tbl-bh-single">
+    <thead><tr>
+      <th>股票</th><th class="num">€1000 → 终值</th><th class="num">十年 CAGR</th><th>KO 频率</th><th>备注</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>NVDA (lever&lt;4x)</td><td class="num money">€49,957</td><td class="num green">+47.9%</td><td>0/10</td><td>年换仓1次reset杠杆</td></tr>
+      <tr><td>PLTR (semi-annual)</td><td class="num money">€66,337</td><td class="num green">+52.1%</td><td>—</td><td>仅6年数据</td></tr>
+      <tr><td>MSFT (lever&lt;4x)</td><td class="num money">€3,453</td><td class="num green">+13.2%</td><td>0/10</td><td>年换仓1次</td></tr>
+      <tr><td>ORCL (lever&lt;4x)</td><td class="num money">€2,623</td><td class="num green">+10.1%</td><td>0/10</td><td>年换仓1次</td></tr>
+      <tr><td>SMCI (semi-annual)</td><td class="num money">€9,231</td><td class="num green">+24.9%</td><td>—</td><td></td></tr>
+      <tr><td>TSLA (semi-annual)</td><td class="num money">€15,589</td><td class="num green">+31.6%</td><td>—</td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ===== TAB 10: 核心规律 ===== -->
+<div class="tab-content" id="tab-rules">
+  <div class="section-title"><span>▎</span> 核心规律总结</div>
+
+  <div class="notes">
+    <h4>1. 三股轮动全面碾压两股</h4>
+    <ul>
+      <li>三股 100% BW（打败最差 B&H），两股仅 78–90%</li>
+      <li>卖出资金平分到两只幸存者 → 消除「换错」风险</li>
+    </ul>
+  </div>
+
+  <div class="notes">
+    <h4>2. MU 是最佳轮动锚点</h4>
+    <ul>
+      <li>出现 9/20，极高波动（52%）创造丰富切换机会</li>
+      <li>最佳搭档：ORCL, AMD, MRVL, AVGO</li>
+    </ul>
+  </div>
+
+  <div class="notes">
+    <h4>3. NVDA 不适合做轮动锚点</h4>
+    <ul>
+      <li>Top 20 仅出现 1 次——太强了，死拿比轮动更赚钱</li>
+      <li>频繁换仓只会增加交易损耗</li>
+    </ul>
+  </div>
+
+  <div class="notes">
+    <h4>4. MSFT/GOOGL 不该放进轮动</h4>
+    <ul>
+      <li>波动太低（~28%），没有切换机会</li>
+      <li>Top 20 出现 0/1 次</li>
+    </ul>
+  </div>
+
+  <div class="notes">
+    <h4>5. 阈值铁律「宁宽勿窄」</h4>
+    <ul>
+      <li>低阈值（15–30%）在趋势市中频繁换仓 → 反亏钱</li>
+      <li>宽阈值（40–50%）稳如泰山，年换仓仅 ~6 次</li>
+    </ul>
+  </div>
+
+  <div class="notes">
+    <h4>6. 跨行业 > 同行业</h4>
+    <ul>
+      <li>混合半导体+软件+硬件 > 纯半导体组合</li>
+      <li>同行业一荣俱荣一损俱损，轮动失效</li>
+    </ul>
+  </div>
+
+  <div class="notes">
+    <h4>7. DCA: Fixed $1000 已是最优解</h4>
+    <ul>
+      <li>0/23 股票从暴跌加仓中获益 — 存弹药 = 踏空</li>
+      <li>选对标的 >>> 选对规则 >>> 选对日子</li>
+      <li>推荐组合：SPY 10% + NVDA 60% + AVGO 30%</li>
+    </ul>
+  </div>
+
+  <div class="notes">
+    <h4>8. 杠杆 ≤ 3x 是铁律</h4>
+    <ul>
+      <li>所有股票 10x 杠杆 10 年内都 KO</li>
+      <li>3x 是三股轮动零 KO 的最优杠杆</li>
+      <li>Kelly 理论值虚高 0.5–2.3x，实操必须下调</li>
+    </ul>
+  </div>
+
+  <div class="notes">
+    <h4>9. 换仓策略分两组</h4>
+    <ul>
+      <li><strong>铁三角（稳定型）</strong>：杠杠 &lt; 3x 换 → +353%，但 4/10 KO</li>
+      <li><strong>窜天猴（高波动）</strong>：涨 &gt; 70% 换 → +290%，3/6 KO</li>
+      <li>窜天猴其他规则全 KO → 必须给足安全边际</li>
+    </ul>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<footer>
+  <p>📊 stock 项目量化回测排行榜 · 数据基于 2016–2026 十年回测 · 生成于 2026-06-04</p>
+  <p>回测引擎：<code>top10_all_trios.py</code> · <code>rotation_3stock_all35.py</code> · <code>dca_ranking_all.py</code> · <code>backtest_rebalance_rule.py</code> · <code>dca_optimal_allocation.py</code></p>
+  <p><a href="https://github.com/jaojingomatic27-dev/stock" target="_blank">GitHub: stock</a> · 本页面不构成投资建议 · 杠杆交易有损失全部本金的风险</p>
+</footer>
+
+<script>
+// Tab switching
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  // Re-apply filter
+  filterAll();
+}
+
+// Global search/filter
+function filterAll() {
+  const q = document.getElementById('globalSearch').value.toLowerCase().trim();
+  if (!q) {
+    // Show all rows
+    document.querySelectorAll('.tab-content.active tbody tr').forEach(r => r.style.display = '');
+    return;
+  }
+  document.querySelectorAll('.tab-content tbody tr').forEach(r => {
+    const txt = r.textContent.toLowerCase();
+    r.style.display = txt.includes(q) ? '' : 'none';
+  });
+}
+
+// Sortable tables
+document.querySelectorAll('th').forEach(th => {
+  th.addEventListener('click', () => {
+    const table = th.closest('table');
+    const tbody = table.querySelector('tbody');
+    const colIdx = Array.from(th.parentElement.children).indexOf(th);
+    const isAsc = th.classList.contains('sorted-asc');
+
+    // Reset all headers in this table
+    th.parentElement.querySelectorAll('th').forEach(h => { h.classList.remove('sorted-asc', 'sorted-desc', 'sorted'); });
+    th.classList.add('sorted', isAsc ? 'sorted-desc' : 'sorted-asc');
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort((a, b) => {
+      let aVal = a.children[colIdx]?.textContent.replace(/[$,%+×,]/g, '').trim() || '';
+      let bVal = b.children[colIdx]?.textContent.replace(/[$,%+×,]/g, '').trim() || '';
+
+      // Try numeric sort
+      let aNum = parseFloat(aVal);
+      let bNum = parseFloat(bVal);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return isAsc ? bNum - aNum : aNum - bNum;
+      }
+      // String sort
+      return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  });
+});
+
+// Keyboard shortcut: Ctrl+F focuses search
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    document.getElementById('globalSearch').focus();
+  }
+});
+</script>
+
+</body>
+</html>

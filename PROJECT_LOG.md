@@ -1,5 +1,20 @@
 # 项目日志 — stock
 
+## [2026-06-04 20:00] 策略回测排行榜网页
+
+- **输入命令**: "把项目中所有试过的关于 三股轮动 策略 b&H策略 和回测结果 排行榜生成个网页 方便检索"
+- **PROJECT_INDEX 变更**: 新增 `image/strategy_rankings.html`，新增 image/ 分类
+- **关键发现**:
+  1. 汇总全部回测数据到一个可检索网页：10 个 Tab、14 张表格、全局搜索+列排序
+  2. 涵盖：1330 组合三股轮动 Top10、35 组合高波动、ORCL+MSFT+AMZN 替换排名、两股轮动 vs B&H、DCA Fixed/DD3M 双轨排名、9 种换仓规则排名、Kelly 最优杠杆、单股 B&H 杠杆
+  3. 暗色金融主题 CSS + 响应式布局 + 键盘快捷键（Ctrl+F 聚焦搜索）
+  4. 核心结论内嵌：「选对标的 >>> 选对规则 >>> 选对日子」
+- **生成/修改的文件**:
+  | 文件 | 说明 |
+  |------|------|
+  | `image/strategy_rankings.html` | 策略回测排行榜网页（自包含，~800行） |
+  | `PROJECT_INDEX.md` | 新增 image/ 分类 + strategy_rankings.html + 统计更新 |
+
 ## [2026-06-04 18:00] 金融产品名录 + PROJECT_INDEX 初始化
 
 - **输入命令**: "把项目提到的所有金融产品的名字列表输出到文件" + "把 financial_products.txt 也加到 PROJECT_INDEX"

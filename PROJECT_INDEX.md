@@ -1,6 +1,6 @@
 # PROJECT_INDEX — stock
 
-最后更新: 2026-06-04
+最后更新: 2026-06-04 20:00
 
 ## code/ — Python 脚本
 
@@ -203,6 +203,21 @@
 
 ---
 
+---
+
+## image/ — 图表与网页
+
+| 文件 | 说明 |
+|------|------|
+| `strategy_rankings.html` | 📊 策略回测排行榜网页（三股轮动/B&H/DCA/换仓/杠杆，含搜索和排序） |
+| `verify_leveraged_etp.png` | 杠杆 ETP 模型验证 4 面板对比图 |
+| `leverage_decay.png` | 6 只权证杠杆衰减曲线图 |
+| `NVDA_ma_cross.png` | NVDA MA5/MA20 交叉信号图 |
+| `chart_4stock_comparison.png` | NVDA/MU/GOOGL/AMZN 4 股对比图 |
+| `chart_threshold_scan.png` | NVDA+MU 阈值扫描热力图 |
+
+---
+
 ## 统计
 
 | 类型 | 数量 |
@@ -213,5 +228,7 @@
 | 持仓 JSON | 3 |
 | 权证输入 | 7 |
 | 文档 | 7 |
+| HTML 网页 | 1 |
+| PNG 图表 | ~10 |
 | PowerShell | 2 |
-| **合计** | **~125** |
+| **合计** | **~136** |
