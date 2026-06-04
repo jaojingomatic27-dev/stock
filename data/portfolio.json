@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created": "2026-06-04",
-  "updated": "2026-06-04 15:14",
+  "updated": "2026-06-04 15:18",
   "name": "铁三角（NVDA+MSFT+ORCL）",
   "threshold": 0.4,
   "total_invested": 1891.16,
@@ -143,6 +143,16 @@
       "date": "2026-06-04 15:14",
       "total_value": 1650.53,
       "had_signal": false
+    },
+    {
+      "date": "2026-06-04 15:18",
+      "total_value": 2247.04,
+      "had_signal": false
+    },
+    {
+      "date": "2026-06-04 15:18",
+      "total_value": 1650.53,
+      "had_signal": true
     }
   ]
 }
